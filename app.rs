@@ -1,156 +1,88 @@
-use rand::{
-    distributions::{Distribution, Uniform},
-    rngs::ThreadRng,
-};
-use tui::widgets::ListState;
+use tui::widgets::TableState;
+use url::Url;
 
-const TASKS: [&str; 24] = [
-    "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Item7", "Item8", "Item9", "Item10",
-    "Item11", "Item12", "Item13", "Item14", "Item15", "Item16", "Item17", "Item18", "Item19",
-    "Item20", "Item21", "Item22", "Item23", "Item24",
-];
-
-const LOGS: [(&str, &str); 26] = [
-    ("Event1", "INFO"),
-    ("Event2", "INFO"),
-    ("Event3", "CRITICAL"),
-    ("Event4", "ERROR"),
-    ("Event5", "INFO"),
-    ("Event6", "INFO"),
-    ("Event7", "WARNING"),
-    ("Event8", "INFO"),
-    ("Event9", "INFO"),
-    ("Event10", "INFO"),
-    ("Event11", "CRITICAL"),
-    ("Event12", "INFO"),
-    ("Event13", "INFO"),
-    ("Event14", "INFO"),
-    ("Event15", "INFO"),
-    ("Event16", "INFO"),
-    ("Event17", "ERROR"),
-    ("Event18", "ERROR"),
-    ("Event19", "INFO"),
-    ("Event20", "INFO"),
-    ("Event21", "WARNING"),
-    ("Event22", "INFO"),
-    ("Event23", "INFO"),
-    ("Event24", "WARNING"),
-    ("Event25", "INFO"),
-    ("Event26", "INFO"),
-];
-
-const EVENTS: [(&str, u64); 24] = [
-    ("B1", 9),
-    ("B2", 12),
-    ("B3", 5),
-    ("B4", 8),
-    ("B5", 2),
-    ("B6", 4),
-    ("B7", 5),
-    ("B8", 9),
-    ("B9", 14),
-    ("B10", 15),
-    ("B11", 1),
-    ("B12", 0),
-    ("B13", 4),
-    ("B14", 6),
-    ("B15", 4),
-    ("B16", 6),
-    ("B17", 4),
-    ("B18", 7),
-    ("B19", 13),
-    ("B20", 8),
-    ("B21", 11),
-    ("B22", 9),
-    ("B23", 3),
-    ("B24", 5),
-];
-
-#[derive(Clone)]
-pub struct RandomSignal {
-    distribution: Uniform<u64>,
-    rng: ThreadRng,
+// Enum to represent our own app state
+pub enum NewsroomState{
+    Startup,
+    Homescreen,
+    Fetching,
+    DisplayMedia(Vec<NewsArticle>),
+    ManageSettings,
 }
 
-impl RandomSignal {
-    pub fn new(lower: u64, upper: u64) -> RandomSignal {
-        RandomSignal {
-            distribution: Uniform::new(lower, upper),
-            rng: rand::thread_rng(),
+// Enum to represent our own state transitions
+pub enum NewsroomTransitions{
+    Loaded,
+    ToSettings,
+    ExitSettings,
+    FetchMedia(Vec<DataSources>),
+    ReturnMedia(Vec<NewsArticle>),
+}
+
+// This enum represents our data providers
+// Later on we can store data for each API
+// Inside the enum fields 
+#[derive(Debug)]
+pub enum DataSources {
+    AssociatedPress,
+    Bbc,
+    Cbc,
+    Cnn,
+}
+
+impl DataSources {
+    
+}
+
+// This struct represents the data that we
+// Actually care about extracting from the news API
+#[derive(Debug)]
+pub struct NewsArticle{
+    authors: Vec<String>,
+    title: String,
+    summary: String,
+    link: Url,
+    source: DataSources,
+}
+
+impl NewsArticle {
+
+}
+
+pub struct App<'a> {
+    pub newsroomstate: NewsroomState,
+    pub state: TableState,
+    pub items: Vec<Vec<&'a str>>,
+}
+
+impl<'a> App<'a> {
+    pub fn new() -> App<'a> {
+        App {
+            state: TableState::default(),
+            items: vec![
+                vec!["Row11", "Row12", "Row13"],
+                vec!["Row21", "Row22", "Row23"],
+                vec!["Row31", "Row32", "Row33"],
+                vec!["Row41", "Row42", "Row43"],
+                vec!["Row51", "Row52", "Row53"],
+                vec!["Row61", "Row62\nTest", "Row63"],
+                vec!["Row71", "Row72", "Row73"],
+                vec!["Row81", "Row82", "Row83"],
+                vec!["Row91", "Row92", "Row93"],
+                vec!["Row101", "Row102", "Row103"],
+                vec!["Row111", "Row112", "Row113"],
+                vec!["Row121", "Row122", "Row123"],
+                vec!["Row131", "Row132", "Row133"],
+                vec!["Row141", "Row142", "Row143"],
+                vec!["Row151", "Row152", "Row153"],
+                vec!["Row161", "Row162", "Row163"],
+                vec!["Row171", "Row172", "Row173"],
+                vec!["Row181", "Row182", "Row183"],
+                vec!["Row191", "Row192", "Row193"],
+            ],
+            newsroomstate: NewsroomState::Startup,
         }
     }
-}
-
-impl Iterator for RandomSignal {
-    type Item = u64;
-    fn next(&mut self) -> Option<u64> {
-        Some(self.distribution.sample(&mut self.rng))
-    }
-}
-
-#[derive(Clone)]
-pub struct SinSignal {
-    x: f64,
-    interval: f64,
-    period: f64,
-    scale: f64,
-}
-
-impl SinSignal {
-    pub fn new(interval: f64, period: f64, scale: f64) -> SinSignal {
-        SinSignal {
-            x: 0.0,
-            interval,
-            period,
-            scale,
-        }
-    }
-}
-
-impl Iterator for SinSignal {
-    type Item = (f64, f64);
-    fn next(&mut self) -> Option<Self::Item> {
-        let point = (self.x, (self.x * 1.0 / self.period).sin() * self.scale);
-        self.x += self.interval;
-        Some(point)
-    }
-}
-
-pub struct TabsState<'a> {
-    pub titles: Vec<&'a str>,
-    pub index: usize,
-}
-
-impl<'a> TabsState<'a> {
-    pub fn new(titles: Vec<&'a str>) -> TabsState {
-        TabsState { titles, index: 0 }
-    }
-    pub fn next(&mut self) {
-        self.index = (self.index + 1) % self.titles.len();
-    }
-
-    pub fn previous(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        } else {
-            self.index = self.titles.len() - 1;
-        }
-    }
-}
-
-pub struct StatefulList<T> {
-    pub state: ListState,
-    pub items: Vec<T>,
-}
-
-impl<T> StatefulList<T> {
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items,
-        }
-    }
-
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
@@ -178,171 +110,35 @@ impl<T> StatefulList<T> {
         };
         self.state.select(Some(i));
     }
-}
 
-pub struct Signal<S: Iterator> {
-    source: S,
-    pub points: Vec<S::Item>,
-    tick_rate: usize,
-}
-
-impl<S> Signal<S>
-where
-    S: Iterator,
-{
-    fn on_tick(&mut self) {
-        for _ in 0..self.tick_rate {
-            self.points.remove(0);
+    pub fn collect(&mut self, transition: NewsroomTransitions)
+    {
+        match(&self.newsroomstate, transition){
+            (NewsroomState::Startup, NewsroomTransitions::Loaded) => todo!(),
+            (NewsroomState::Startup, NewsroomTransitions::ToSettings) => todo!(),
+            (NewsroomState::Startup, NewsroomTransitions::ExitSettings) => todo!(),
+            (NewsroomState::Startup, NewsroomTransitions::FetchMedia(_)) => todo!(),
+            (NewsroomState::Startup, NewsroomTransitions::ReturnMedia(_)) => todo!(),
+            (NewsroomState::Homescreen, NewsroomTransitions::Loaded) => todo!(),
+            (NewsroomState::Homescreen, NewsroomTransitions::ToSettings) => todo!(),
+            (NewsroomState::Homescreen, NewsroomTransitions::ExitSettings) => todo!(),
+            (NewsroomState::Homescreen, NewsroomTransitions::FetchMedia(_)) => todo!(),
+            (NewsroomState::Homescreen, NewsroomTransitions::ReturnMedia(_)) => todo!(),
+            (NewsroomState::Fetching, NewsroomTransitions::Loaded) => todo!(),
+            (NewsroomState::Fetching, NewsroomTransitions::ToSettings) => todo!(),
+            (NewsroomState::Fetching, NewsroomTransitions::ExitSettings) => todo!(),
+            (NewsroomState::Fetching, NewsroomTransitions::FetchMedia(_)) => todo!(),
+            (NewsroomState::Fetching, NewsroomTransitions::ReturnMedia(_)) => todo!(),
+            (NewsroomState::DisplayMedia(_), NewsroomTransitions::Loaded) => todo!(),
+            (NewsroomState::DisplayMedia(_), NewsroomTransitions::ToSettings) => todo!(),
+            (NewsroomState::DisplayMedia(_), NewsroomTransitions::ExitSettings) => todo!(),
+            (NewsroomState::DisplayMedia(_), NewsroomTransitions::FetchMedia(_)) => todo!(),
+            (NewsroomState::DisplayMedia(_), NewsroomTransitions::ReturnMedia(_)) => todo!(),
+            (NewsroomState::ManageSettings, NewsroomTransitions::Loaded) => todo!(),
+            (NewsroomState::ManageSettings, NewsroomTransitions::ToSettings) => todo!(),
+            (NewsroomState::ManageSettings, NewsroomTransitions::ExitSettings) => todo!(),
+            (NewsroomState::ManageSettings, NewsroomTransitions::FetchMedia(_)) => todo!(),
+            (NewsroomState::ManageSettings, NewsroomTransitions::ReturnMedia(_)) => todo!(),
         }
-        self.points
-            .extend(self.source.by_ref().take(self.tick_rate));
-    }
-}
-
-pub struct Signals {
-    pub sin1: Signal<SinSignal>,
-    pub sin2: Signal<SinSignal>,
-    pub window: [f64; 2],
-}
-
-impl Signals {
-    fn on_tick(&mut self) {
-        self.sin1.on_tick();
-        self.sin2.on_tick();
-        self.window[0] += 1.0;
-        self.window[1] += 1.0;
-    }
-}
-
-pub struct Server<'a> {
-    pub name: &'a str,
-    pub location: &'a str,
-    pub coords: (f64, f64),
-    pub status: &'a str,
-}
-
-pub struct App<'a> {
-    pub title: &'a str,
-    pub should_quit: bool,
-    pub tabs: TabsState<'a>,
-    pub show_chart: bool,
-    pub progress: f64,
-    pub sparkline: Signal<RandomSignal>,
-    pub tasks: StatefulList<&'a str>,
-    pub logs: StatefulList<(&'a str, &'a str)>,
-    pub signals: Signals,
-    pub barchart: Vec<(&'a str, u64)>,
-    pub servers: Vec<Server<'a>>,
-    pub enhanced_graphics: bool,
-}
-
-impl<'a> App<'a> {
-    pub fn new(title: &'a str, enhanced_graphics: bool) -> App<'a> {
-        let mut rand_signal = RandomSignal::new(0, 100);
-        let sparkline_points = rand_signal.by_ref().take(300).collect();
-        let mut sin_signal = SinSignal::new(0.2, 3.0, 18.0);
-        let sin1_points = sin_signal.by_ref().take(100).collect();
-        let mut sin_signal2 = SinSignal::new(0.1, 2.0, 10.0);
-        let sin2_points = sin_signal2.by_ref().take(200).collect();
-        App {
-            title,
-            should_quit: false,
-            tabs: TabsState::new(vec!["Tab0", "Tab1", "Tab2"]),
-            show_chart: true,
-            progress: 0.0,
-            sparkline: Signal {
-                source: rand_signal,
-                points: sparkline_points,
-                tick_rate: 1,
-            },
-            tasks: StatefulList::with_items(TASKS.to_vec()),
-            logs: StatefulList::with_items(LOGS.to_vec()),
-            signals: Signals {
-                sin1: Signal {
-                    source: sin_signal,
-                    points: sin1_points,
-                    tick_rate: 5,
-                },
-                sin2: Signal {
-                    source: sin_signal2,
-                    points: sin2_points,
-                    tick_rate: 10,
-                },
-                window: [0.0, 20.0],
-            },
-            barchart: EVENTS.to_vec(),
-            servers: vec![
-                Server {
-                    name: "NorthAmerica-1",
-                    location: "New York City",
-                    coords: (40.71, -74.00),
-                    status: "Up",
-                },
-                Server {
-                    name: "Europe-1",
-                    location: "Paris",
-                    coords: (48.85, 2.35),
-                    status: "Failure",
-                },
-                Server {
-                    name: "SouthAmerica-1",
-                    location: "São Paulo",
-                    coords: (-23.54, -46.62),
-                    status: "Up",
-                },
-                Server {
-                    name: "Asia-1",
-                    location: "Singapore",
-                    coords: (1.35, 103.86),
-                    status: "Up",
-                },
-            ],
-            enhanced_graphics,
-        }
-    }
-
-    pub fn on_up(&mut self) {
-        self.tasks.previous();
-    }
-
-    pub fn on_down(&mut self) {
-        self.tasks.next();
-    }
-
-    pub fn on_right(&mut self) {
-        self.tabs.next();
-    }
-
-    pub fn on_left(&mut self) {
-        self.tabs.previous();
-    }
-
-    pub fn on_key(&mut self, c: char) {
-        match c {
-            'q' => {
-                self.should_quit = true;
-            }
-            't' => {
-                self.show_chart = !self.show_chart;
-            }
-            _ => {}
-        }
-    }
-
-    pub fn on_tick(&mut self) {
-        // Update progress
-        self.progress += 0.001;
-        if self.progress > 1.0 {
-            self.progress = 0.0;
-        }
-
-        self.sparkline.on_tick();
-        self.signals.on_tick();
-
-        let log = self.logs.items.pop().unwrap();
-        self.logs.items.insert(0, log);
-
-        let event = self.barchart.pop().unwrap();
-        self.barchart.insert(0, event);
     }
 }
