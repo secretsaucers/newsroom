@@ -8,11 +8,7 @@ use crossterm::{
 };
 use std::{error::Error, io};
 use tui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Row, Table, TableState},
-    Frame, Terminal,
+    backend::{Backend, CrosstermBackend}, Terminal,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
