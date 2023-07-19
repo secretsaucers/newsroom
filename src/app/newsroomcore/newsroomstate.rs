@@ -1,4 +1,6 @@
-use Url::Url;
+use url::Url;
+
+use super::newsarticle::news_article;
 
 // Enum to represent our own app state
 pub enum newsroom_state{
@@ -12,12 +14,17 @@ pub enum newsroom_state{
 
 // Enum to represent our own state transitions
 pub enum newsroom_transitions{
-
+    Loaded,
+    ToSettings,
+    ExitSettings,
+    FetchMedia(Vec<data_sources>),
+    ReturnMedia(Vec<news_article>),
 }
 
 // This enum represents our data providers
 // Later on we can store data for each API
 // Inside the enum fields 
+#[derive(Debug)]
 pub enum data_sources {
     associated_press,
     bbc,
@@ -27,19 +34,4 @@ pub enum data_sources {
 
 impl data_sources {
     
-}
-
-// This struct represents the data that we
-// Actually care about extracting from the news API
-#[derive(Debug)]
-pub struct news_article{
-    authors: Vec<String>,
-    title: String,
-    summary: String,
-    link: Url,
-    source: data_sources,
-}
-
-impl news_article {
-
 }
