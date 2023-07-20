@@ -1,3 +1,4 @@
+#![allow(warnings, unused)]
 mod ui;
 mod app;
 

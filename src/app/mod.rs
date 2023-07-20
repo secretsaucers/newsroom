@@ -1,5 +1,4 @@
 use tui::widgets::TableState;
-use url::Url;
 
 mod newsroomcore;
 

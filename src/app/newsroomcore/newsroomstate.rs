@@ -1,5 +1,3 @@
-use url::Url;
-
 use super::newsarticle::news_article;
 
 // Enum to represent our own app state
@@ -24,12 +22,10 @@ pub enum newsroom_transitions{
 // This enum represents our data providers
 // Later on we can store data for each API
 // Inside the enum fields 
-#[derive(Debug)]
-pub enum data_sources {
-    associated_press,
-    bbc,
-    cbc,
-    cnn,
+#[derive(Debug, Clone)]
+pub struct data_sources {
+    pub name: String,
+    pub url: String,
 }
 
 impl data_sources {
