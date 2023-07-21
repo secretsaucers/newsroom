@@ -4,10 +4,15 @@ mod newsroomcore;
 
 use newsroomcore::{newsroomstate::newsroom_state, newsroomstate::newsroom_transitions};
 
+use crate::app::newsroomcore::newsroomstate::data_sources;
+
+use self::newsroomcore::{newsfetchrss::fetch_rss_feed, newsarticle::news_article};
+
 pub struct App<'a> {
     pub newsroom_state: newsroom_state,
     pub state: TableState,
     pub items: Vec<Vec<&'a str>>,
+    pub newsroom_articles: Vec<news_article>
 }
 
 impl<'a> App<'a> {
@@ -15,33 +20,30 @@ impl<'a> App<'a> {
         App {
             state: TableState::default(),
             items: vec![
-                vec!["Row11", "Row12", "Row13"],
-                vec!["Row21", "Row22", "Row23"],
-                vec!["Row31", "Row32", "Row33"],
-                vec!["Row41", "Row42", "Row43"],
-                vec!["Row51", "Row52", "Row53"],
-                vec!["Row61", "Row62\nTest", "Row63"],
-                vec!["Row71", "Row72", "Row73"],
-                vec!["Row81", "Row82", "Row83"],
-                vec!["Row91", "Row92", "Row93"],
-                vec!["Row101", "Row102", "Row103"],
-                vec!["Row111", "Row112", "Row113"],
-                vec!["Row121", "Row122", "Row123"],
-                vec!["Row131", "Row132", "Row133"],
-                vec!["Row141", "Row142", "Row143"],
-                vec!["Row151", "Row152", "Row153"],
-                vec!["Row161", "Row162", "Row163"],
-                vec!["Row171", "Row172", "Row173"],
-                vec!["Row181", "Row182", "Row183"],
-                vec!["Row191", "Row192", "Row193"],
             ],
             newsroom_state: newsroom_state::startup,
+            newsroom_articles: vec![],
         }
     }
+
+    pub async fn load(&mut self){
+        let cbc = data_sources{name: "cbc".to_string(), url: "https://www.cbc.ca/cmlink/rss-topstories".to_string()};
+        let cnn = data_sources{name: "cnn".to_string(), url: "http://rss.cnn.com/rss/cnn_topstories.rss".to_string()};
+        let globe: data_sources = data_sources { name: "globe and mail".to_string(), url: "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/".to_string()};
+        
+        let mut f_cbc = fetch_rss_feed(cbc).await.unwrap();
+        let mut f_cnn = fetch_rss_feed(cnn).await.unwrap();
+        let mut f_globe = fetch_rss_feed(globe).await.unwrap();
+
+        self.newsroom_articles.append(&mut f_cbc);
+        self.newsroom_articles.append(&mut f_cnn);
+        self.newsroom_articles.append(&mut f_globe);
+    }
+
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.items.len() - 1 {
+                if i >= self.newsroom_articles.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -56,7 +58,7 @@ impl<'a> App<'a> {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
-                    self.items.len() - 1
+                    self.newsroom_articles.len() - 1
                 } else {
                     i - 1
                 }

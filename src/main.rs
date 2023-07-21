@@ -12,7 +12,8 @@ use tui::{
     backend::{Backend, CrosstermBackend}, Terminal,
 };
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -49,7 +50,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: app::App) -> io::Res
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Down => app.next(),
                 KeyCode::Up => app.previous(),
-                _ => {}
+                KeyCode::Char('l') => {futures::executor::block_on(app.load());},
+                _ => {},
             }
         }
     }

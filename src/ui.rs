@@ -17,7 +17,7 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
-    let header_cells = ["Header1", "Header2", "Header3"]
+    let header_cells = ["Title", "Author"]
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
     let header = Row::new(header_cells)
@@ -34,15 +34,32 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         let cells = item.iter().map(|c| Cell::from(*c));
         Row::new(cells).height(height as u16).bottom_margin(1)
     });
-    let t = Table::new(rows)
-        .header(header)
-        .block(Block::default().borders(Borders::ALL).title("Table"))
-        .highlight_style(selected_style)
-        .highlight_symbol(">> ")
-        .widths(&[
-            Constraint::Percentage(50),
-            Constraint::Length(30),
-            Constraint::Min(10),
-        ]);
+    // let t = Table::new(rows)
+    //     .header(header)
+    //     .block(Block::default().borders(Borders::ALL).title("Table"))
+    //     .highlight_style(selected_style)
+    //     .highlight_symbol(">> ")
+    //     .widths(&[
+    //         Constraint::Percentage(50),
+    //         Constraint::Length(30),
+    //         Constraint::Min(10),
+    //     ]);
+    let mut rows_news: Vec<Row<'_>> = Vec::new();
+
+    for news_article in &app.newsroom_articles{
+        rows_news.push(Row::new(vec![news_article.title.clone(), news_article.authors[0].clone()]));
+    }
+
+    let t = Table::new(rows_news)
+    .header(header)
+    .block(Block::default().borders(Borders::ALL).title("Newsroom"))
+    .highlight_style(selected_style)
+    .highlight_symbol(">> ")
+    .widths(&[
+        Constraint::Percentage(50),
+        Constraint::Length(30),
+        Constraint::Min(10),
+    ]);
+
     f.render_stateful_widget(t, rects[0], &mut app.state);
 }
