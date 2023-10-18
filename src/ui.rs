@@ -3,10 +3,9 @@ use tui::{
     backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
-    widgets::{
-        Block, Borders, Cell, Row, Table,
-    },
+    widgets::{Block, Borders, Cell, Row, Table, Paragraph, Wrap},
     Frame,
+    text::Text,
 };
 
 pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -17,7 +16,7 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
-    let header_cells = ["Title", "Author"]
+    let header_cells = ["Title"]
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
     let header = Row::new(header_cells)
@@ -34,32 +33,35 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         let cells = item.iter().map(|c| Cell::from(*c));
         Row::new(cells).height(height as u16).bottom_margin(1)
     });
-    // let t = Table::new(rows)
-    //     .header(header)
-    //     .block(Block::default().borders(Borders::ALL).title("Table"))
-    //     .highlight_style(selected_style)
-    //     .highlight_symbol(">> ")
-    //     .widths(&[
-    //         Constraint::Percentage(50),
-    //         Constraint::Length(30),
-    //         Constraint::Min(10),
-    //     ]);
+
     let mut rows_news: Vec<Row<'_>> = Vec::new();
 
-    for news_article in &app.newsroom_articles{
-        rows_news.push(Row::new(vec![news_article.title.clone(), news_article.authors[0].clone()]));
+    for news_article in &app.newsroom_articles {
+        rows_news.push(Row::new(
+            Text::from(news_article.title.clone()),
+        ).bottom_margin(1));
     }
 
-    let t = Table::new(rows_news)
-    .header(header)
-    .block(Block::default().borders(Borders::ALL).title("Newsroom"))
-    .highlight_style(selected_style)
-    .highlight_symbol(">> ")
-    .widths(&[
-        Constraint::Percentage(50),
-        Constraint::Length(30),
-        Constraint::Min(10),
-    ]);
+    let t = Table::new(rows)
+        .header(header)
+        .block(Block::default().borders(Borders::ALL).title("Newsroom"))
+        .highlight_style(selected_style)
+        .highlight_symbol(">> ")
+        .widths(&[
+            Constraint::Percentage(50),
+            Constraint::Length(30),
+            Constraint::Min(10),
+        ]);
 
-    f.render_stateful_widget(t, rects[0], &mut app.state);
+    
+
+    match &app.newsroom_state {
+        crate::app::newsroomcore::newsroomstate::NewsroomState::Startup(splash_text) => f.render_widget(Paragraph::new(splash_text.clone()), rects[0]),
+        crate::app::newsroomcore::newsroomstate::NewsroomState::Homescreen => todo!(),
+        crate::app::newsroomcore::newsroomstate::NewsroomState::FetchMedia(_) => todo!(),
+        crate::app::newsroomcore::newsroomstate::NewsroomState::return_media(_) => todo!(),
+        crate::app::newsroomcore::newsroomstate::NewsroomState::display_media => f.render_stateful_widget(t, rects[0], &mut app.state),
+        crate::app::newsroomcore::newsroomstate::NewsroomState::manage_settings => todo!(),
+    }
+
 }

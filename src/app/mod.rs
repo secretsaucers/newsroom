@@ -1,12 +1,12 @@
 use tui::widgets::TableState;
 
-mod newsroomcore;
+pub mod newsroomcore;
 
-use newsroomcore::{newsroomstate::newsroom_state, newsroomstate::newsroom_transitions};
+use newsroomcore::{newsroomstate::newsroom_state, newsroomstate::newsroom_transitions, utils};
 
 use crate::app::newsroomcore::newsroomstate::data_sources;
 
-use self::newsroomcore::{newsfetchrss::fetch_rss_feed, newsarticle::news_article};
+use self::newsroomcore::{newsfetchrss::fetch_rss_feed, newsarticle::news_article, utils::loadScreen};
 
 pub struct App<'a> {
     pub newsroom_state: newsroom_state,
@@ -21,7 +21,7 @@ impl<'a> App<'a> {
             state: TableState::default(),
             items: vec![
             ],
-            newsroom_state: newsroom_state::startup,
+            newsroom_state: newsroom_state::startup(loadScreen.to_string()),
             newsroom_articles: vec![],
         }
     }
@@ -35,9 +35,11 @@ impl<'a> App<'a> {
         let mut f_cnn = fetch_rss_feed(cnn).await.unwrap();
         let mut f_globe = fetch_rss_feed(globe).await.unwrap();
 
-        self.newsroom_articles.append(&mut f_cbc);
-        self.newsroom_articles.append(&mut f_cnn);
-        self.newsroom_articles.append(&mut f_globe);
+        let mut fetched_articles: Vec<news_article> = f_cbc;
+        fetched_articles.append(&mut f_cnn);
+        fetched_articles.append(&mut f_globe);
+
+        self.collect(newsroom_transitions::ReturnMedia(fetched_articles));
     }
 
     pub fn next(&mut self) {
@@ -71,11 +73,11 @@ impl<'a> App<'a> {
     pub fn collect(&mut self, transition: newsroom_transitions)
     {
         match(&self.newsroom_state, transition){
-            (newsroom_state::startup, newsroom_transitions::Loaded) => todo!(),
-            (newsroom_state::startup, newsroom_transitions::ToSettings) => todo!(),
-            (newsroom_state::startup, newsroom_transitions::ExitSettings) => todo!(),
-            (newsroom_state::startup, newsroom_transitions::FetchMedia(_)) => todo!(),
-            (newsroom_state::startup, newsroom_transitions::ReturnMedia(_)) => todo!(),
+            (newsroom_state::startup(_), newsroom_transitions::Loaded) => todo!(),
+            (newsroom_state::startup(_), newsroom_transitions::ToSettings) => todo!(),
+            (newsroom_state::startup(_), newsroom_transitions::ExitSettings) => todo!(),
+            (newsroom_state::startup(_), newsroom_transitions::FetchMedia(_)) => todo!(),
+            (newsroom_state::startup(_), newsroom_transitions::ReturnMedia(media_vec)) => {self.newsroom_articles = media_vec; self.newsroom_state = newsroom_state::display_media},
             (newsroom_state::homescreen, newsroom_transitions::Loaded) => todo!(),
             (newsroom_state::homescreen, newsroom_transitions::ToSettings) => todo!(),
             (newsroom_state::homescreen, newsroom_transitions::ExitSettings) => todo!(),
