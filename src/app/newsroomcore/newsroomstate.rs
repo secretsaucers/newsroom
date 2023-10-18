@@ -1,6 +1,11 @@
-use super::newsarticle::news_article;
+use tokio::sync::mpsc::Sender;
+
+use crate::app::newsroomcore::newsfetchrss::channel_to_articles;
+
+use super::{newsarticle::news_article, newsfetchrss::get_channel, datasources::DataSources};
 
 // Enum to represent our own app state
+#[derive(Debug, Clone)]
 pub enum NewsroomState{
     Startup(String),
     homescreen,
@@ -17,17 +22,4 @@ pub enum NewsroomTransitions{
     ExitSettings,
     FetchMedia(Vec<DataSources>),
     ReturnMedia(Vec<news_article>),
-}
-
-// This enum represents our data providers
-// Later on we can store data for each API
-// Inside the enum fields 
-#[derive(Debug, Clone)]
-pub struct DataSources {
-    pub name: String,
-    pub url: String,
-}
-
-impl DataSources {
-    
 }

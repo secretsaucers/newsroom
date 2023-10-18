@@ -2,12 +2,14 @@
 mod ui;
 mod app;
 
+use app::App;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io};
+use tokio::sync::Mutex;
+use std::{error::Error, io, sync::Arc};
 use tui::{
     backend::{Backend, CrosstermBackend}, Terminal,
 };
@@ -22,7 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = app::App::new();
+    let app: App = App::new();
     let res = run_app(&mut terminal, app);
 
     // restore terminal
@@ -42,15 +44,43 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: app::App) -> io::Result<()> {
+    // Main loop
+    
+    // Create an arc mutex to App so that we can access it nicely from other threads
+    let app_arc = Arc::new(Mutex::new(app));
+
+    // Handle user inputs, delegating each to an async
     loop {
-        terminal.draw(|f| ui::ui(f, &mut app))?;
+        // let app_arc_local = app_arc.clone();
+        // tokio::spawn(async move {
+        //     let mut app_local = app_arc_local.lock().await;
+        //     terminal.draw(|f| ui::ui(f, &mut app_local))?;
+        // });
 
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => app.next(),
-                KeyCode::Up => app.previous(),
-                KeyCode::Char('l') => {futures::executor::block_on(app.load());},
+                KeyCode::Down => {
+                    let app_arc_local = app_arc.clone();
+                    tokio::spawn(async move {
+                        let mut app_local = app_arc_local.lock().await;
+                        app_local.next();
+                    });
+                },
+                KeyCode::Up => {
+                    let app_arc_local = app_arc.clone();
+                    tokio::spawn(async move {
+                        let mut app_local = app_arc_local.lock().await;
+                        app_local.previous();
+                    });
+                },
+                KeyCode::Char('l') => {
+                    let app_arc_local = app_arc.clone();
+                    tokio::spawn(async move {
+                        let mut app_local = app_arc_local.lock().await;
+                        app_local.load();
+                    });
+                },
                 _ => {},
             }
         }

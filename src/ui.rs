@@ -23,14 +23,11 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(normal_style)
         .height(1)
         .bottom_margin(1);
-    let rows = app.items.iter().map(|item| {
-        let height = item
-            .iter()
-            .map(|content| content.chars().filter(|c| *c == '\n').count())
-            .max()
-            .unwrap_or(0)
+    let rows = app.newsroom_articles.iter().map(|item| {
+        let height = item.title
+            .chars().filter(|c| *c == '\n').count()
             + 1;
-        let cells = item.iter().map(|c| Cell::from(*c));
+        let cells = item.authors.iter().map(|c| Cell::from(c.clone()));
         Row::new(cells).height(height as u16).bottom_margin(1)
     });
 
@@ -57,8 +54,8 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     match &app.newsroom_state {
         crate::app::newsroomcore::newsroomstate::NewsroomState::Startup(splash_text) => f.render_widget(Paragraph::new(splash_text.clone()), rects[0]),
-        crate::app::newsroomcore::newsroomstate::NewsroomState::Homescreen => todo!(),
-        crate::app::newsroomcore::newsroomstate::NewsroomState::FetchMedia(_) => todo!(),
+        crate::app::newsroomcore::newsroomstate::NewsroomState::homescreen => todo!(),
+        crate::app::newsroomcore::newsroomstate::NewsroomState::fetch_media(_) => todo!(),
         crate::app::newsroomcore::newsroomstate::NewsroomState::return_media(_) => todo!(),
         crate::app::newsroomcore::newsroomstate::NewsroomState::display_media => f.render_stateful_widget(t, rects[0], &mut app.state),
         crate::app::newsroomcore::newsroomstate::NewsroomState::manage_settings => todo!(),

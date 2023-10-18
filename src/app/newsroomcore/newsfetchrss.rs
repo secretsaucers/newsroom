@@ -1,21 +1,30 @@
 // Code section to fetch RSS data in a way we can understand
 use rss::Channel;
+use tokio::sync::mpsc::{Sender, Receiver, self};
 use std::error::Error;
 use reqwest::Request;
 
-use super::{newsarticle::news_article, newsroomstate::DataSources};
+use super::{newsarticle::news_article, datasources::DataSources};
 
 
-async fn get_channel(url : &str) -> Result<Channel, Box<dyn Error>> {
-    let content = reqwest::get(url)
-        .await?
-        .bytes()
-        .await?;
-    let channel = Channel::read_from(&content[..])?;
-    Ok(channel)
+pub(crate) async fn get_channel(url : &str) -> Result<Channel, ()> {
+    let content =  match reqwest::get(url).await {
+        Ok(get_result) => {
+            match get_result.bytes().await{
+                Ok(get_result_bytes) => get_result_bytes,
+                Err(_) => return Err(()),
+            }
+        },
+        Err(_) => return Err(()),
+    };
+
+    return match Channel::read_from(&content[..]) {
+        Ok(channel) => Ok(channel),
+        Err(_) => Err(()),
+    }
 }
 
-fn channel_to_articles(channel: Channel, data_source: DataSources) -> Result<Vec<news_article>, Box<dyn Error>>{
+pub(crate) fn channel_to_articles(channel: Channel, data_source: DataSources) -> Result<Vec<news_article>, ()>{
     // Take in a channel and reformat into a vector of news articles
 
     let mut articles: Vec<news_article> = Vec::new();
@@ -54,13 +63,32 @@ fn channel_to_articles(channel: Channel, data_source: DataSources) -> Result<Vec
     Ok(articles)
 }
 
-pub async fn fetch_rss_feed(source: DataSources) -> Result<Vec<news_article>, Box<dyn Error>>{
-    let channel = get_channel(&source.url).await?;
-    channel_to_articles(channel, source)
+pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_article>{
+    // Asynchronously fetches news articles from the rss feeds
+    let (tx, mut rx): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
+    for source in sources{
+        tokio::spawn(source.stream_articles(tx.clone()));
+    }
+
+    let mut fetched_articles: Vec<news_article> = vec![];
+
+    loop {
+        match rx.recv().await {
+            Some(news_article_message) => {
+                fetched_articles.push(news_article_message)
+            },
+            None => break,
+        }
+    }
+    
+    return fetched_articles;
+
 }
 
 #[cfg(test)]
 mod test {
+    use tokio::sync::mpsc::{Receiver, self};
+
     use super::*;
 
     // Test that we're able to correctly read from the CBC rss channel
@@ -72,7 +100,7 @@ mod test {
         let entry = &items[0];
         // let entry_str = entry.content().unwrap();
         // println!("{}", entry_str);
-        assert_eq!(ch.title(), "CBC | Top Stories News ");
+        assert_eq!(ch.title(), "CBC | Top Stories News");
     }
 
     #[tokio::test]
@@ -83,13 +111,4 @@ mod test {
         assert!(articles.len() > 0); //Make sure that we can pull some articles
         // println!("{:#?}", articles);
     }
-
-    #[tokio::test]
-    async fn test_public_fn(){
-        let source: DataSources = DataSources { name: "CBC".to_string(), url: "https://www.cbc.ca/cmlink/rss-topstories".to_string() };
-        let articles = fetch_rss_feed(source).await.unwrap();
-        assert!(articles.len() > 0); //Make sure that we can pull some articles
-        println!("{:#?}", articles);
-    }
-
 }

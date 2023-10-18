@@ -1,4 +1,4 @@
-use super::newsroomstate::data_sources;
+use crate::app::newsroomcore::datasources::DataSources;
 
 // This struct represents the data that we
 // Actually care about extracting from the news API
@@ -8,7 +8,7 @@ pub struct news_article{
     pub title: String,
     pub summary: String,
     pub link: String,
-    pub source: data_sources,
+    pub source: DataSources,
 }
 
 impl news_article {
