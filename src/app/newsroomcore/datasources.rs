@@ -70,8 +70,8 @@ mod test {
         let (tx, mut rx): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
 
         tokio::spawn(cbc.stream_articles(tx));
-        println!("waiting");
+        let article = rx.recv().await;
+        println!("{:#?}", article.unwrap());
         assert!(rx.recv().await.is_some());
     }
-
 }

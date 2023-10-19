@@ -64,10 +64,16 @@ pub(crate) fn channel_to_articles(channel: Channel, data_source: DataSources) ->
 }
 
 pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_article>{
+    let mut rx: Receiver<news_article>;
+
     // Asynchronously fetches news articles from the rss feeds
-    let (tx, mut rx): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
-    for source in sources{
-        tokio::spawn(source.stream_articles(tx.clone()));
+    // Define a local scope so that we can drop TX, meaning the channel will close when all threads resolve
+    {
+        let (tx, mut rx_local): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
+        rx = rx_local;
+        for source in sources{
+            tokio::spawn(source.stream_articles(tx.clone()));
+        }
     }
 
     let mut fetched_articles: Vec<news_article> = vec![];
@@ -80,9 +86,7 @@ pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_articl
             None => break,
         }
     }
-    
     return fetched_articles;
-
 }
 
 #[cfg(test)]
@@ -110,5 +114,17 @@ mod test {
         let articles = channel_to_articles(ch, source).unwrap();
         assert!(articles.len() > 0); //Make sure that we can pull some articles
         // println!("{:#?}", articles);
+    }
+
+    #[tokio::test]
+    async fn test_fetch_articles(){
+        let cbc = DataSources{name: "cbc".to_string(), url: "https://www.cbc.ca/cmlink/rss-topstories".to_string()};
+        let cnn = DataSources{name: "cnn".to_string(), url: "http://rss.cnn.com/rss/cnn_topstories.rss".to_string()};
+        let globe: DataSources = DataSources { name: "globe and mail".to_string(), url: "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/".to_string()};
+        let sources = vec![cbc, cnn, globe];
+
+        // Fetch articles and add them to the app
+        let fetched_articles = fetch_articles(sources).await;
+        assert!(fetched_articles.len()>1);
     }
 }

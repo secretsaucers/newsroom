@@ -5,10 +5,10 @@ use tui::widgets::TableState;
 pub mod newsroomcore;
 
 use newsroomcore::{newsroomstate::NewsroomState, newsroomstate::NewsroomTransitions, utils};
-
 use crate::app::newsroomcore::datasources::DataSources;
-
 use self::newsroomcore::{newsfetchrss::{self, fetch_articles}, newsarticle::news_article, utils::loadScreen};
+
+use log::{info, trace, warn};
 
 #[derive(Debug, Clone)]
 pub struct App {
@@ -21,21 +21,24 @@ impl App {
     pub fn new() -> App {
         App {
             state: TableState::default(),
-            newsroom_state: NewsroomState::Startup(loadScreen.to_string()),
+            newsroom_state: NewsroomState::Startup("Loading Newsroom".to_string()),
             newsroom_articles: vec![],
         }
     }
 
     pub async fn load(&mut self){
+        info!("Initiating article load");
         let cbc = DataSources{name: "cbc".to_string(), url: "https://www.cbc.ca/cmlink/rss-topstories".to_string()};
         let cnn = DataSources{name: "cnn".to_string(), url: "http://rss.cnn.com/rss/cnn_topstories.rss".to_string()};
         let globe: DataSources = DataSources { name: "globe and mail".to_string(), url: "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/".to_string()};
-    
         let sources = vec![cbc, cnn, globe];
+        let num_sources = sources.len();
 
         // Fetch articles and add them to the app
         let fetched_articles = fetch_articles(sources).await;
-        NewsroomTransitions::ReturnMedia(fetched_articles);
+        info!("Loaded {} articles from {} sources, finished article load", fetched_articles.len(), num_sources);
+        self.collect(NewsroomTransitions::ReturnMedia(fetched_articles));
+        
     }
 
     pub fn next(&mut self) {
@@ -93,12 +96,27 @@ impl App {
             (NewsroomState::display_media, NewsroomTransitions::ToSettings) => todo!(),
             (NewsroomState::display_media, NewsroomTransitions::ExitSettings) => todo!(),
             (NewsroomState::display_media, NewsroomTransitions::FetchMedia(_)) => todo!(),
-            (NewsroomState::display_media, NewsroomTransitions::ReturnMedia(_)) => todo!(),
+            (NewsroomState::display_media, NewsroomTransitions::ReturnMedia(_)) => {},
             (NewsroomState::manage_settings, NewsroomTransitions::Loaded) => todo!(),
             (NewsroomState::manage_settings, NewsroomTransitions::ToSettings) => todo!(),
             (NewsroomState::manage_settings, NewsroomTransitions::ExitSettings) => todo!(),
             (NewsroomState::manage_settings, NewsroomTransitions::FetchMedia(_)) => todo!(),
             (NewsroomState::manage_settings, NewsroomTransitions::ReturnMedia(_)) => todo!(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use tokio::sync::mpsc::{Receiver, self};
+    use super::*;
+
+    // Test that we're able to run the load fn correctly
+    #[tokio::test]
+    async fn test_load(){
+        let mut app: App = App::new();
+        assert!(matches!(app.newsroom_state, NewsroomState::Startup(_)));
+        app.load().await;
+        assert!(matches!(app.newsroom_state, NewsroomState::display_media));
     }
 }
