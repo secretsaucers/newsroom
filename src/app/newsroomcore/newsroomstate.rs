@@ -7,11 +7,9 @@ use super::{newsarticle::news_article, newsfetchrss::get_channel, datasources::D
 // Enum to represent our own app state
 #[derive(Debug, Clone)]
 pub enum NewsroomState{
-    Startup(String),
     homescreen,
     fetch_media(Vec<DataSources>),
-    return_media(Vec<news_article>),
-    display_media,
+    display_media(Vec<news_article>),
     manage_settings,
 }
 

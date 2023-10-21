@@ -17,6 +17,7 @@ futures = "0.3" # for our async / await blocks
 tokio = { version = "1.12.0", features = ["full"] } # for our async runtime
 log = "0.4.20"
 simple-logging = "2.0.2"
+webbrowser = "0.8.12"
 
 #[[bin]]
 #name = "newsroom"

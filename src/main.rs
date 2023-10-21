@@ -1,101 +1,55 @@
-#![allow(warnings, unused)]
-mod app;
-mod ui;
-
-use app::App;
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use log::{info, LevelFilter};
-use std::{error::Error, io, sync::Arc};
+use newsroom::app::{App, AppResult};
+use newsroom::event::{Event, EventHandler};
+use newsroom::handler::handle_key_events;
+use newsroom::tui::Tui;
 use tokio::sync::Mutex;
-use tui::{
-    backend::{Backend, CrosstermBackend},
-    Terminal,
-};
+use std::io;
+use std::sync::Arc;
+use tui::backend::CrosstermBackend;
+use tui::Terminal;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    // Setup logging, only used for development
-    simple_logging::log_to_file("newsroom.log", LevelFilter::Info);
-
-    // setup terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-
-    // create app and run it
-    let app: App = App::new();
-    let res = run_app(&mut terminal, app);
-
-    // restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
-    if let Err(err) = res {
-        println!("{:?}", err)
-    }
-
-    Ok(())
-}
-
-fn run_app<B: Backend + std::marker::Send>(
-    terminal: &mut Terminal<B>,
-    mut app: app::App,
-) -> io::Result<()> {
-    // Main loop
-
-    // Create an arc mutex to App so that we can access it nicely from other threads
+async fn main() -> AppResult<()> {
+    // Create an application.
+    let app = App::new();
     let app_arc = Arc::new(Mutex::new(app));
 
-    // Handle user inputs, delegating each to an async
-    loop {
-        // Check if we can grab a lock on the app mutex, if we can use it to update the terminal output
-        match app_arc.try_lock() {
-            Ok(mut locked_app) => {
-                terminal.draw(|f| ui::ui(f, &mut locked_app));
-            }
-            Err(_) => {}
+    // Initialize the terminal user interface.
+    let backend = CrosstermBackend::new(io::stderr());
+    let terminal = Terminal::new(backend)?;
+    let events = EventHandler::new(250);
+    let mut tui = Tui::new(terminal, events);
+    tui.init()?;
+
+    let mut app_should_run: bool = true;
+
+    // Start the main loop.
+    while app_should_run {
+        // Clone the ARC MUTEX for use later
+        let app_arc_local = app_arc.clone();
+        {
+            // Run somethings that need access to the App directly
+            let app_locked = app_arc_local.lock().await;
+            app_should_run = app_locked.running;
+            // Render the user interface.
+            tui.draw(app_locked)?;
         }
 
-        if event::poll(std::time::Duration::from_millis(50))? {
-            if let Event::Key(key) = event::read()? {
-                info!("{:#?}", key);
-                match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Down => {
-                        let app_arc_local = app_arc.clone();
-                        tokio::spawn(async move {
-                            let mut app_local = app_arc_local.lock().await;
-                            app_local.next();
-                        });
-                    }
-                    KeyCode::Up => {
-                        let app_arc_local = app_arc.clone();
-                        tokio::spawn(async move {
-                            let mut app_local = app_arc_local.lock().await;
-                            app_local.previous();
-                        });
-                    }
-                    KeyCode::Char('l') => {
-                        let app_arc_local = app_arc.clone();
-                        let t1 = tokio::spawn(async move {
-                            let mut app_local = app_arc_local.lock().await;
-                            app_local.load().await;
-                        });
-                    }
-                    _ => {}
-                }
-            }
+        // Handle events.
+        match tui.events.next()? {
+            Event::Tick => {
+                tokio::spawn(async move {
+                    let app_locked = app_arc_local.lock().await;
+                    app_locked.tick()
+                });
+            },
+            Event::Key(key_event) => handle_key_events(key_event, app_arc_local.clone())?,
+            Event::Mouse(_) => {}
+            Event::Resize(_, _) => {}
         }
     }
+
+    // Exit the user interface.
+    tui.exit()?;
+    Ok(())
 }
