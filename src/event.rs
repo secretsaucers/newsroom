@@ -1,7 +1,6 @@
 use crate::app::AppResult;
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
-use std::sync::mpsc;
-use std::thread;
+use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent, KeyEventKind};
+use tokio::{sync::{mpsc::{self, Receiver, UnboundedSender, UnboundedReceiver, unbounded_channel}, Mutex}, io::Empty};
 use std::time::{Duration, Instant};
 
 /// Terminal events.
@@ -15,6 +14,8 @@ pub enum Event {
     Mouse(MouseEvent),
     /// Terminal resize.
     Resize(u16, u16),
+    /// Nothing, dont do anything
+    Nothing,
 }
 
 /// Terminal event handler.
@@ -22,21 +23,21 @@ pub enum Event {
 #[derive(Debug)]
 pub struct EventHandler {
     /// Event sender channel.
-    sender: mpsc::Sender<Event>,
+    sender: UnboundedSender<Event>,
     /// Event receiver channel.
-    receiver: mpsc::Receiver<Event>,
+    receiver: UnboundedReceiver<Event>,
     /// Event handler thread.
-    handler: thread::JoinHandle<()>,
+    handler: tokio::task::JoinHandle<()>,
 }
 
 impl EventHandler {
     /// Constructs a new instance of [`EventHandler`].
     pub fn new(tick_rate: u64) -> Self {
         let tick_rate = Duration::from_millis(tick_rate);
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = mpsc::unbounded_channel();
         let handler = {
             let sender = sender.clone();
-            thread::spawn(move || {
+            tokio::spawn(async move {
                 let mut last_tick = Instant::now();
                 loop {
                     let timeout = tick_rate
@@ -45,12 +46,16 @@ impl EventHandler {
 
                     if event::poll(timeout).expect("no events available") {
                         match event::read().expect("unable to read event") {
-                            CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
-                            CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
-                            CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
+                            CrosstermEvent::Key(key) => {
+                                if key.kind == KeyEventKind::Press {
+                                  sender.send(Event::Key(key));
+                                };
+                            },
+                            CrosstermEvent::Mouse(e) => {sender.send(Event::Mouse(e));},
+                            CrosstermEvent::Resize(w, h) => {sender.send(Event::Resize(w, h));},
                             _ => unimplemented!(),
                         }
-                        .expect("failed to send terminal event")
+                        // .expect("failed to send terminal event")
                     }
 
                     if last_tick.elapsed() >= tick_rate {
@@ -71,7 +76,11 @@ impl EventHandler {
     ///
     /// This function will always block the current thread if
     /// there is no data available and it's possible for more data to be sent.
-    pub fn next(&self) -> AppResult<Event> {
-        Ok(self.receiver.recv()?)
+    pub fn next(&mut self) -> AppResult<Event> {
+        match self.receiver.try_recv() {
+            Ok(app_result) => AppResult::Ok(app_result),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty) => AppResult::Ok(Event::Nothing),
+            Err(_) => AppResult::Err("".into()),
+        }
     }
 }

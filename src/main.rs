@@ -1,3 +1,4 @@
+use log::LevelFilter;
 use newsroom::app::{App, AppResult};
 use newsroom::event::{Event, EventHandler};
 use newsroom::handler::handle_key_events;
@@ -11,8 +12,10 @@ use tui::Terminal;
 #[tokio::main]
 async fn main() -> AppResult<()> {
     // Create an application.
-    let app = App::new();
-    let app_arc = Arc::new(Mutex::new(app));
+    let mut app = App::new();
+
+    // Setup logging, only used for development
+    simple_logging::log_to_file("newsroom.log", LevelFilter::Info);
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stderr());
@@ -20,33 +23,22 @@ async fn main() -> AppResult<()> {
     let events = EventHandler::new(250);
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
-
-    let mut app_should_run: bool = true;
-
     // Start the main loop.
-    while app_should_run {
-        // Clone the ARC MUTEX for use later
-        let app_arc_local = app_arc.clone();
-        {
-            // Run somethings that need access to the App directly
-            let app_locked = app_arc_local.lock().await;
-            app_should_run = app_locked.running;
-            // Render the user interface.
-            tui.draw(app_locked)?;
-        }
+    while app.running {
+        tui.draw(&app)?;
 
         // Handle events.
         match tui.events.next()? {
             Event::Tick => {
-                tokio::spawn(async move {
-                    let app_locked = app_arc_local.lock().await;
-                    app_locked.tick()
-                });
+                app.tick();
             },
-            Event::Key(key_event) => handle_key_events(key_event, app_arc_local.clone())?,
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+            Event::Key(key_event) => handle_key_events(key_event, &app)?,
+            Event::Mouse(_) => {},
+            Event::Resize(_, _) => {},
+            Event::Nothing => {},
         }
+
+        app.poll_and_run_action().await;
     }
 
     // Exit the user interface.

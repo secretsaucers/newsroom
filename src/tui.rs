@@ -52,8 +52,8 @@ impl<B: Backend> Tui<B> {
     ///
     /// [`Draw`]: tui::Terminal::draw
     /// [`rendering`]: crate::ui:render
-    pub fn draw(&mut self, app: MutexGuard<'_, App>) -> AppResult<()> {
-        self.terminal.draw(|frame| ui::render(app, frame))?;
+    pub fn draw(&mut self, app: &App) -> AppResult<()> {
+        self.terminal.draw(|frame| ui::render(&app, frame))?;
         Ok(())
     }
 

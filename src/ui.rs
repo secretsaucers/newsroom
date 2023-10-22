@@ -12,7 +12,7 @@ use tui::{
 use crate::app::{newsroomcore, App};
 
 /// Renders the user interface widgets.
-pub fn render<B: Backend>(app: MutexGuard<'_, App>, frame: &mut Frame<'_, B>) {
+pub fn render<B: Backend>(app: &App, frame: &mut Frame<'_, B>) {
     // This is where you add new widgets.
     // See the following resources:
     // - https://docs.rs/ratatui/latest/ratatui/widgets/index.html
@@ -64,8 +64,7 @@ pub fn render<B: Backend>(app: MutexGuard<'_, App>, frame: &mut Frame<'_, B>) {
                 .map(|x| ListItem::new(format!("{}: {}", x.source.name,x.title)))
                 .collect();
             let active_widget = List::new(items)
-                .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
-                .highlight_symbol(">>")
+                .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
                 .block(
                     Block::default()
                         .title("Newsroom")

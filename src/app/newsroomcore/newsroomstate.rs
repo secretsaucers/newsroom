@@ -20,4 +20,9 @@ pub enum NewsroomTransitions{
     ExitSettings,
     FetchMedia(Vec<DataSources>),
     ReturnMedia(Vec<news_article>),
+    Up,
+    Down,
+    Left,
+    Right,
+    Quit,
 }

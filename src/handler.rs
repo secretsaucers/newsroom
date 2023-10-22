@@ -1,54 +1,33 @@
 use std::sync::Arc;
 
-use crate::app::{App, AppResult};
+use crate::app::{App, AppResult, newsroomcore::newsroomstate::NewsroomTransitions};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use log::info;
 use tokio::sync::Mutex;
 
 /// Handles the key events and updates the state of [`App`].
-pub fn handle_key_events(key_event: KeyEvent, app_arc: Arc<Mutex<App>>) -> AppResult<()> {
+pub fn handle_key_events(key_event: KeyEvent, app: &App) -> AppResult<()> {
+    info!("user input: {:#?}", key_event);
     match key_event.code {
         // Exit application on `ESC` or `q`
         KeyCode::Esc | KeyCode::Char('q') => {
-            let app_arc_local = app_arc.clone();
-            tokio::spawn(async move {
-                let mut app_local = app_arc_local.lock().await;
-                app_local.quit();
-            });
+            app.tx.send(NewsroomTransitions::Quit);
         },
         // Exit application on `Ctrl-C`
         KeyCode::Char('c') | KeyCode::Char('C') => {
-            let app_arc_local = app_arc.clone();
-            tokio::spawn(async move {
-                let mut app_local = app_arc_local.lock().await;
-                app_local.quit();
-            });
+            app.tx.send(NewsroomTransitions::Quit);
         },
         KeyCode::Down => {
-            let app_arc_local = app_arc.clone();
-            tokio::spawn(async move {
-                let mut app_local = app_arc_local.lock().await;
-                app_local.next();
-            });
+            app.tx.send(NewsroomTransitions::Down);
         }
         KeyCode::Up => {
-            let app_arc_local = app_arc.clone();
-            tokio::spawn(async move {
-                let mut app_local = app_arc_local.lock().await;
-                app_local.previous();
-            });
+            app.tx.send(NewsroomTransitions::Up);
         }
         KeyCode::Char('l') => {
-            let app_arc_local = app_arc.clone();
-            tokio::spawn(async move {
-                App::load(app_arc_local).await;
-            });
+            app.tx.send(NewsroomTransitions::FetchMedia([].to_vec()));
         }
         KeyCode::Enter => {
-            let app_arc_local = app_arc.clone();
-            tokio::spawn(async move {
-                let app_local = app_arc_local.lock().await;
-                app_local.open_selected();
-            });
+            app.open_selected();
         },
         _ => {}
     }
