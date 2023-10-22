@@ -9,6 +9,7 @@ edition = "2021"
 argh = "0.1.10"
 crossterm = "0.26.1"
 rand = "0.8.5"
+
 tui = { package = "ratatui", version = ">=0.23.0", features = ["all-widgets"]}
 url = "2.3.1"
 rss = "2.0.4"
