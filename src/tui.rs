@@ -3,10 +3,10 @@ use crate::event::EventHandler;
 use crate::ui;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
-use tokio::sync::MutexGuard;
+
 use std::io;
 use std::panic;
-use std::sync::Arc;
+
 use tui::backend::Backend;
 use tui::Terminal;
 
@@ -53,7 +53,7 @@ impl<B: Backend> Tui<B> {
     /// [`Draw`]: tui::Terminal::draw
     /// [`rendering`]: crate::ui:render
     pub fn draw(&mut self, app: &App) -> AppResult<()> {
-        self.terminal.draw(|frame| ui::render(&app, frame))?;
+        self.terminal.draw(|frame| ui::render(app, frame))?;
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use crate::app::AppResult;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent, KeyEventKind};
-use tokio::{sync::{mpsc::{self, Receiver, UnboundedSender, UnboundedReceiver, unbounded_channel}, Mutex}, io::Empty};
+use tokio::{sync::{mpsc::{self, UnboundedSender, UnboundedReceiver}}};
 use std::time::{Duration, Instant};
 
 /// Terminal events.

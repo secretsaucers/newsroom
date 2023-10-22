@@ -2,7 +2,7 @@
 use rss::Channel;
 use tokio::sync::mpsc::{Sender, Receiver, self};
 use std::error::Error;
-use reqwest::Request;
+
 
 use super::{newsarticle::news_article, datasources::DataSources};
 
@@ -18,7 +18,7 @@ pub(crate) async fn get_channel(url : &str) -> Result<Channel, ()> {
         Err(_) => return Err(()),
     };
 
-    return match Channel::read_from(&content[..]) {
+    match Channel::read_from(&content[..]) {
         Ok(channel) => Ok(channel),
         Err(_) => Err(()),
     }
@@ -54,7 +54,7 @@ pub(crate) fn channel_to_articles(channel: Channel, data_source: DataSources) ->
                     None => "".to_string(),
                 };
 
-                let article_to_push: news_article = news_article{ authors: author, title: title, summary: summary, link, source: data_source.clone() };
+                let article_to_push: news_article = news_article{ authors: author, title, summary, link, source: data_source.clone() };
                 articles.push(article_to_push);
             },
             None => {},
@@ -69,7 +69,7 @@ pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_articl
     // Asynchronously fetches news articles from the rss feeds
     // Define a local scope so that we can drop TX, meaning the channel will close when all threads resolve
     {
-        let (tx, mut rx_local): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
+        let (tx, rx_local): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
         rx = rx_local;
         for source in sources{
             tokio::spawn(source.stream_articles(tx.clone()));
@@ -86,12 +86,12 @@ pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_articl
             None => break,
         }
     }
-    return fetched_articles;
+    fetched_articles
 }
 
 #[cfg(test)]
 mod test {
-    use tokio::sync::mpsc::{Receiver, self};
+    
 
     use super::*;
 
@@ -101,7 +101,7 @@ mod test {
         let ch = get_channel("https://www.cbc.ca/cmlink/rss-topstories").await.unwrap();
         let items = ch.items();
         println!("{}", items.len());
-        let entry = &items[0];
+        let _entry = &items[0];
         // let entry_str = entry.content().unwrap();
         // println!("{}", entry_str);
         assert_eq!(ch.title(), "CBC | Top Stories News");
@@ -112,7 +112,7 @@ mod test {
         let source: DataSources = DataSources { name: "CBC".to_string(), url: "https://www.cbc.ca/cmlink/rss-topstories".to_string() };
         let ch = get_channel(&source.url).await.unwrap();
         let articles = channel_to_articles(ch, source).unwrap();
-        assert!(articles.len() > 0); //Make sure that we can pull some articles
+        assert!(!articles.is_empty()); //Make sure that we can pull some articles
         // println!("{:#?}", articles);
     }
 

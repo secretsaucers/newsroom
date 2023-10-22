@@ -1,9 +1,9 @@
-use std::sync::Arc;
+
 
 use crate::app::{App, AppResult, newsroomcore::newsroomstate::NewsroomTransitions};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 use log::info;
-use tokio::sync::Mutex;
+
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &App) -> AppResult<()> {

@@ -1,15 +1,15 @@
 pub mod newsroomcore; // Main newsroom code
 
-use std::{error, sync::Arc};
+use std::{error};
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
-use self::newsroomcore::{newsarticle::news_article, newsroomstate::NewsroomState};
+use self::newsroomcore::{newsroomstate::NewsroomState};
 use crate::app::newsroomcore::{
     datasources::DataSources, newsfetchrss::fetch_articles, newsroomstate::NewsroomTransitions,
 };
 
-use log::{info, trace, warn};
-use tokio::sync::{mpsc::{self, Receiver, UnboundedSender, UnboundedReceiver, unbounded_channel}, Mutex};
+use log::{info};
+use tokio::sync::{mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel}};
 use tui::widgets::TableState;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
@@ -188,8 +188,8 @@ impl App {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use tokio::sync::mpsc::{self, Receiver};
+    
+    
 
     // // Test that we're able to run the load fn correctly
     // #[tokio::test]

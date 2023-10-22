@@ -1,8 +1,8 @@
-use tokio::sync::mpsc::Sender;
 
-use crate::app::newsroomcore::newsfetchrss::channel_to_articles;
 
-use super::{newsarticle::news_article, newsfetchrss::get_channel, datasources::DataSources};
+
+
+use super::{newsarticle::news_article, datasources::DataSources};
 
 // Enum to represent our own app state
 #[derive(Debug, Clone)]

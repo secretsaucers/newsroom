@@ -3,9 +3,9 @@ use newsroom::app::{App, AppResult};
 use newsroom::event::{Event, EventHandler};
 use newsroom::handler::handle_key_events;
 use newsroom::tui::Tui;
-use tokio::sync::Mutex;
+
 use std::io;
-use std::sync::Arc;
+
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 

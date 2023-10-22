@@ -1,6 +1,6 @@
 use tokio::sync::mpsc::Sender;
 
-use crate::app::newsroomcore::newsfetchrss::channel_to_articles;
+
 
 use super::{newsfetchrss::get_channel, newsarticle::news_article};
 
@@ -18,7 +18,7 @@ impl DataSources {
     pub(crate) async fn stream_articles(self, tx: Sender<news_article>) -> Result<(), ()>{
         // Take in a channel and reformat into a vector of news articles
         if let Ok(channel) = get_channel(&self.url).await {
-            let mut articles: Vec<news_article> = Vec::new();
+            let _articles: Vec<news_article> = Vec::new();
             for item in channel.items(){
                 match item.description(){
                     Some(description) => {
@@ -45,7 +45,7 @@ impl DataSources {
                             None => "".to_string(),
                         };
         
-                        let article_to_push: news_article = news_article{ authors: author, title: title, summary: summary, link, source: self.clone() };
+                        let article_to_push: news_article = news_article{ authors: author, title, summary, link, source: self.clone() };
                         tx.send(article_to_push).await;
                     },
                     None => {},

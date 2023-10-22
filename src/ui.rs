@@ -1,11 +1,11 @@
-use std::sync::Arc;
 
-use tokio::sync::MutexGuard;
+
+
 use tui::{
     backend::Backend,
     layout::Alignment,
     style::{Color, Modifier, Style},
-    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Widget, ListState},
+    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, ListState},
     Frame,
 };
 
