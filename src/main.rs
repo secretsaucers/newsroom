@@ -9,6 +9,8 @@ use std::io;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
+mod settings;
+
 #[tokio::main]
 async fn main() -> AppResult<()> {
     // Create an application.

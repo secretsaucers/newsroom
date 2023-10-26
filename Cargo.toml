@@ -10,15 +10,16 @@ argh = "0.1.10"
 crossterm = "0.26.1"
 rand = "0.8.5"
 
-tui = { package = "ratatui", version = ">=0.23.0", features = ["all-widgets"]}
+tui = { package = "ratatui", version = "=0.24.0", features = ["all-widgets"]}
 url = "2.3.1"
 rss = "2.0.4"
 reqwest = "0.11.18"
-futures = "0.3" # for our async / await blocks
 tokio = { version = "1.12.0", features = ["full"] } # for our async runtime
 log = "0.4.20"
 simple-logging = "2.0.2"
 webbrowser = "0.8.12"
+itertools = "0.11.0"
+throbber-widgets-tui = "0.2.0"
 
 #[[bin]]
 #name = "newsroom"
