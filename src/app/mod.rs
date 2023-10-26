@@ -4,9 +4,9 @@ use std::{error};
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 use self::newsroomcore::{newsroomstate::NewsroomState};
-use crate::app::newsroomcore::{
+use crate::{app::newsroomcore::{
     datasources::DataSources, newsfetchrss::fetch_articles, newsroomstate::NewsroomTransitions,
-};
+}, settings::Settings};
 
 use log::{info};
 use tokio::sync::{mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel}};
@@ -19,22 +19,26 @@ use webbrowser;
 #[derive(Debug)]
 pub struct App {
     pub newsroom_state: NewsroomState,
-    pub state: TableState,
+    pub settings: Settings,
     /// Is the application running?
     pub running: bool,
     pub tx: UnboundedSender<NewsroomTransitions>,
     rx: UnboundedReceiver<NewsroomTransitions>,
+    pub tab: u16,
+    pub row: Option<usize>,
 }
 
 impl App {
     pub fn new() -> App {
         let (tx, rx) = unbounded_channel();
         App {
-            state: TableState::default(),
+            settings: Settings::new(),
             newsroom_state: NewsroomState::homescreen,
             running: true,
             tx,
-            rx
+            rx,
+            tab: 0,
+            row: None,
         }
     }
 
@@ -76,7 +80,7 @@ impl App {
     fn next(&mut self) {
         match &self.newsroom_state {
             NewsroomState::display_media(articles) => {
-                let i = match self.state.selected() {
+                let i = match self.row {
                     Some(i) => {
                         if i >= articles.len() - 1 {
                             0
@@ -86,7 +90,7 @@ impl App {
                     }
                     None => 0,
                 };
-                self.state.select(Some(i));
+                self.row = Some(i);
             }
             _ => {}
         }
@@ -95,7 +99,7 @@ impl App {
     fn previous(&mut self) {
         match &self.newsroom_state {
             NewsroomState::display_media(articles) => {
-                let i = match self.state.selected() {
+                let i = match self.row {
                     Some(i) => {
                         if i == 0 {
                             articles.len() - 1
@@ -105,7 +109,7 @@ impl App {
                     }
                     None => 0,
                 };
-                self.state.select(Some(i));
+                self.row = Some(i);
             }
             _ => {}
         }
@@ -114,7 +118,7 @@ impl App {
     pub fn open_selected(&self) {
         match &self.newsroom_state{
             NewsroomState::display_media(articles) => {
-                match &self.state.selected(){
+                match &self.row {
                     Some(index) => {
                         let url = &articles[*index].link;
                         let _ = webbrowser::open(url);
@@ -172,8 +176,9 @@ impl App {
         }
     }
 
-    pub fn tick(&self) {
-        // Used whenever the tick is nessisary
+    pub fn tick(&mut self) {
+        // Used whenever the tick is nessasary
+        
     }
 
     pub async fn poll_and_run_action(&mut self){
