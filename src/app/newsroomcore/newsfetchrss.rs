@@ -92,7 +92,6 @@ pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_articl
 #[cfg(test)]
 mod test {
     
-
     use super::*;
 
     // Test that we're able to correctly read from the CBC rss channel

@@ -1,7 +1,3 @@
-
-
-
-
 use super::{newsarticle::news_article, datasources::DataSources};
 
 // Enum to represent our own app state
