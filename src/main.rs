@@ -9,15 +9,16 @@ use std::io;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
-mod settings;
-
 #[tokio::main]
 async fn main() -> AppResult<()> {
+    // Setup logging, only used for development
+
+    if cfg!(debug_assertions) {
+        simple_logging::log_to_file("newsroom.log", LevelFilter::Info);
+    }
+
     // Create an application.
     let mut app = App::new();
-
-    // Setup logging, only used for development
-    simple_logging::log_to_file("newsroom.log", LevelFilter::Info);
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stderr());

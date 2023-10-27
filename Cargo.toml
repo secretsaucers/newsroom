@@ -20,6 +20,8 @@ simple-logging = "2.0.2"
 webbrowser = "0.8.12"
 itertools = "0.11.0"
 throbber-widgets-tui = "0.2.0"
+toml = "0.8.5"
+serde = "1.0.190"
 
 #[[bin]]
 #name = "newsroom"

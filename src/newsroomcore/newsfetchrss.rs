@@ -6,7 +6,7 @@ use std::error::Error;
 
 use super::{newsarticle::news_article, datasources::DataSources};
 
-
+/// Collects data from the channel URL
 pub(crate) async fn get_channel(url : &str) -> Result<Channel, ()> {
     let content =  match reqwest::get(url).await {
         Ok(get_result) => {
@@ -24,45 +24,7 @@ pub(crate) async fn get_channel(url : &str) -> Result<Channel, ()> {
     }
 }
 
-pub(crate) fn channel_to_articles(channel: Channel, data_source: DataSources) -> Result<Vec<news_article>, ()>{
-    // Take in a channel and reformat into a vector of news articles
-
-    let mut articles: Vec<news_article> = Vec::new();
-    for item in channel.items(){
-        match item.description(){
-            Some(description) => {
-                // Extract the data we need from item
-
-                // Author
-                let author: Vec<String> = match item.author(){
-                    Some(auth) => vec![auth.to_string()],
-                    None => vec!["".to_string()],
-                };
-
-                // Title
-                let title: String = match item.title() {
-                    Some(tit) => tit.to_string(),
-                    None => "".to_string(),
-                };
-                
-                // Summary (We've already unwrapped this)
-                let summary = description.to_string();
-
-                // Link
-                let link = match item.link() {
-                    Some(url) => url.to_string(),
-                    None => "".to_string(),
-                };
-
-                let article_to_push: news_article = news_article{ authors: author, title, summary, link, source: data_source.clone() };
-                articles.push(article_to_push);
-            },
-            None => {},
-        }
-    }
-    Ok(articles)
-}
-
+/// Fetches articles from a series of sources, returns a list of articles. Articles are fetched async
 pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_article>{
     let mut rx: Receiver<news_article>;
 
@@ -104,15 +66,6 @@ mod test {
         // let entry_str = entry.content().unwrap();
         // println!("{}", entry_str);
         assert_eq!(ch.title(), "CBC | Top Stories News");
-    }
-
-    #[tokio::test]
-    async fn test_channel_to_articles(){
-        let source: DataSources = DataSources { name: "CBC".to_string(), url: "https://www.cbc.ca/cmlink/rss-topstories".to_string() };
-        let ch = get_channel(&source.url).await.unwrap();
-        let articles = channel_to_articles(ch, source).unwrap();
-        assert!(!articles.is_empty()); //Make sure that we can pull some articles
-        // println!("{:#?}", articles);
     }
 
     #[tokio::test]

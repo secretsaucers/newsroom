@@ -1,4 +1,4 @@
-use crate::{app::{newsroomcore::newsroomstate::NewsroomState}, settings::Theme};
+use crate::{newsroomcore::newsroomstate::NewsroomState, settings::Theme};
 use tui::{
     prelude::*,
     widgets::{calendar::CalendarEventStore, *},

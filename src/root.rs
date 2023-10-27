@@ -5,6 +5,7 @@ use tui::{prelude::*, widgets::*};
 
 use crate::{tabs::*, app::App};
 
+/// Struct to store root ui
 pub struct Root<'a> {
     context: &'a App,
 }
@@ -16,6 +17,7 @@ impl<'a> Root<'a> {
 }
 
 impl Widget for Root<'_> {
+    /// Render root ui
     fn render(self, area: Rect, buf: &mut Buffer) {
         Block::new().style(self.context.settings.theme.root).render(area, buf);
         let area = layout(area, Direction::Vertical, vec![1, 0, 1]);
@@ -26,11 +28,12 @@ impl Widget for Root<'_> {
 }
 
 impl Root<'_> {
+    /// Render the title bar of the app
     fn render_title_bar(&self, area: Rect, buf: &mut Buffer) {
-        let area = layout(area, Direction::Horizontal, vec![0, 45]);
+        let area = layout(area, Direction::Horizontal, vec![0, 20]);
 
         Paragraph::new(Span::styled("Newsroom", self.context.settings.theme.app_title)).render(area[0], buf);
-        let titles = vec!["", " News ", " Settings "];
+        let titles = vec![" News ", " Settings "];
         Tabs::new(titles)
             .style(self.context.settings.theme.tabs)
             .highlight_style(self.context.settings.theme.tabs_selected)
@@ -38,7 +41,7 @@ impl Root<'_> {
             .divider("")
             .render(area[1], buf);
     }
-
+    /// Render the main area according to the selected tab
     fn render_selected_tab(&self, area: Rect, buf: &mut Buffer) {
         match self.context.tab {
             0 => NewsTab::new(&self.context.newsroom_state, self.context.settings.theme.clone(), self.context.row).render(area, buf),
@@ -46,13 +49,14 @@ impl Root<'_> {
             _ => unreachable!(),
         };
     }
-
+    /// Render the text on the bottom bar
     fn render_bottom_bar(&self, area: Rect, buf: &mut Buffer) {
         let keys = [
             ("Q/Esc", "Quit"),
             ("Tab", "Next Tab"),
             ("↑/k", "Up"),
             ("↓/j", "Down"),
+            ("↵", "Open article")
         ];
         let spans = keys
             .iter()
@@ -70,7 +74,7 @@ impl Root<'_> {
     }
 }
 
-/// simple helper method to split an area into multiple sub-areas
+/// Simple helper method to split an area into multiple sub-areas
 pub fn layout(area: Rect, direction: Direction, heights: Vec<u16>) -> Rc<[Rect]> {
     let constraints = heights
         .iter()

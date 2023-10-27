@@ -1,10 +1,8 @@
-pub mod newsroomcore; // Main newsroom code
-
 use std::{error};
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
-use self::newsroomcore::{newsroomstate::NewsroomState};
-use crate::{app::newsroomcore::{
+use crate::newsroomcore::{newsroomstate::NewsroomState};
+use crate::{newsroomcore::{
     datasources::DataSources, newsfetchrss::fetch_articles, newsroomstate::NewsroomTransitions,
 }, settings::Settings};
 
@@ -20,7 +18,7 @@ use webbrowser;
 pub struct App {
     pub newsroom_state: NewsroomState,
     pub settings: Settings,
-    /// Is the application running?
+    // Is the application running?
     pub running: bool,
     pub tx: UnboundedSender<NewsroomTransitions>,
     rx: UnboundedReceiver<NewsroomTransitions>,
@@ -42,22 +40,13 @@ impl App {
         }
     }
 
-    async fn load(tx: UnboundedSender<NewsroomTransitions>) {
+    /// Loads rss articles in the background
+    /// 
+    /// Arguments
+    /// * tx - A sender used to relay the 'articles loaded' transition to the app
+    /// * sources - The sources which we are fetching rss for 
+    async fn load(tx: UnboundedSender<NewsroomTransitions>, sources: Vec<DataSources>) {
         info!("Initiating article load");
-        let cbc = DataSources {
-            name: "cbc".to_string(),
-            url: "https://www.cbc.ca/cmlink/rss-topstories".to_string(),
-        };
-        let cnn = DataSources {
-            name: "cnn".to_string(),
-            url: "http://rss.cnn.com/rss/cnn_topstories.rss".to_string(),
-        };
-        let globe: DataSources = DataSources {
-            name: "globe and mail".to_string(),
-            url: "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/"
-                .to_string(),
-        };
-        let sources = vec![cbc, cnn, globe];
 
         // Send fetch media update over the channel
         tx.send(NewsroomTransitions::FetchMedia(sources.clone()));
@@ -77,6 +66,7 @@ impl App {
 
     }
 
+    /// Advance the current widget (only used now to highlight the next article)
     fn next(&mut self) {
         match &self.newsroom_state {
             NewsroomState::display_media(articles) => {
@@ -96,6 +86,7 @@ impl App {
         }
     }
 
+    /// Reverse the current widget (only used now to highlight the previous article)
     fn previous(&mut self) {
         match &self.newsroom_state {
             NewsroomState::display_media(articles) => {
@@ -115,6 +106,7 @@ impl App {
         }
     }
 
+    /// Opens the currently highlighted news article in the system browser
     pub fn open_selected(&self) {
         match &self.newsroom_state{
             NewsroomState::display_media(articles) => {
@@ -130,32 +122,51 @@ impl App {
         }
     }
 
+    /// Changes the context tab
+    pub fn change_tab(&self) {
+        let _ = match &self.newsroom_state {
+            NewsroomState::manage_settings(_) => self.tx.send(NewsroomTransitions::ExitSettings),
+            _ => self.tx.send(NewsroomTransitions::ToSettings),
+        };
+    }
+
+    /// Collects state transitions and acts on them based on the current state
+    /// # Arguments 
+    /// 
+    /// * `transition` - The state transition to be acted upon
     fn collect(&mut self, transition: NewsroomTransitions) {
         match (&self.newsroom_state, transition) {
             (NewsroomState::homescreen, NewsroomTransitions::Loaded) => todo!(),
-            (NewsroomState::homescreen, NewsroomTransitions::ToSettings) => todo!(),
             (NewsroomState::homescreen, NewsroomTransitions::ExitSettings) => todo!(),
             (NewsroomState::homescreen, NewsroomTransitions::FetchMedia(sources)) => {
-                self.newsroom_state = NewsroomState::fetch_media(sources);
+                self.newsroom_state = NewsroomState::fetch_media(sources.clone());
                 let local_tx = self.tx.clone();
-                tokio::spawn(App::load(local_tx));
+                tokio::spawn(App::load(local_tx, sources));
             },
             (NewsroomState::homescreen, NewsroomTransitions::ReturnMedia(_)) => todo!(),
             (NewsroomState::fetch_media(_), NewsroomTransitions::Loaded) => todo!(),
-            (NewsroomState::fetch_media(_), NewsroomTransitions::ToSettings) => todo!(),
             (NewsroomState::fetch_media(_), NewsroomTransitions::ExitSettings) => todo!(),
             (NewsroomState::fetch_media(_), NewsroomTransitions::FetchMedia(_)) => {},
             (NewsroomState::fetch_media(_), NewsroomTransitions::ReturnMedia(media_vec)) =>  self.newsroom_state = NewsroomState::display_media(media_vec),
             (NewsroomState::display_media(_), NewsroomTransitions::Loaded) => todo!(),
-            (NewsroomState::display_media(_), NewsroomTransitions::ToSettings) => todo!(),
             (NewsroomState::display_media(_), NewsroomTransitions::ExitSettings) => todo!(),
             (NewsroomState::display_media(_), NewsroomTransitions::FetchMedia(_)) => todo!(),
             (NewsroomState::display_media(_), NewsroomTransitions::ReturnMedia(_)) => {}
-            (NewsroomState::manage_settings, NewsroomTransitions::Loaded) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::ToSettings) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::ExitSettings) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::FetchMedia(_)) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::ReturnMedia(_)) => todo!(),
+            (NewsroomState::manage_settings(_), NewsroomTransitions::Loaded) => todo!(),
+            (NewsroomState::manage_settings(maybe_articles), NewsroomTransitions::ExitSettings) => {
+                self.tab = 0; 
+                // If we saved the articles when transitioning to settings, change to the display state on settings exit
+                // else go to homescreen
+                self.newsroom_state = match maybe_articles {
+                    Some(articles) => NewsroomState::display_media(articles.to_vec()),
+                    None => NewsroomState::homescreen,
+                }
+            
+            },
+            (NewsroomState::display_media(articles), NewsroomTransitions::ToSettings) => {self.tab = 1; self.newsroom_state = NewsroomState::manage_settings(Some(articles.to_vec()))},
+            (_, NewsroomTransitions::ToSettings) => {self.tab = 1; self.newsroom_state = NewsroomState::manage_settings(None)},
+            (NewsroomState::manage_settings(_), NewsroomTransitions::FetchMedia(_)) => todo!(),
+            (NewsroomState::manage_settings(_), NewsroomTransitions::ReturnMedia(_)) => todo!(),
             (NewsroomState::homescreen, NewsroomTransitions::Up) => todo!(),
             (NewsroomState::homescreen, NewsroomTransitions::Down) => todo!(),
             (NewsroomState::homescreen, NewsroomTransitions::Left) => todo!(),
@@ -168,21 +179,20 @@ impl App {
             (NewsroomState::display_media(_), NewsroomTransitions::Down) => self.next(),
             (NewsroomState::display_media(_), NewsroomTransitions::Left) => todo!(),
             (NewsroomState::display_media(_), NewsroomTransitions::Right) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::Up) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::Down) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::Left) => todo!(),
-            (NewsroomState::manage_settings, NewsroomTransitions::Right) => todo!(),
+            (NewsroomState::manage_settings(_), NewsroomTransitions::Up) => {},
+            (NewsroomState::manage_settings(_), NewsroomTransitions::Down) => {},
+            (NewsroomState::manage_settings(_), NewsroomTransitions::Left) => {},
+            (NewsroomState::manage_settings(_), NewsroomTransitions::Right) => {},
             (_, NewsroomTransitions::Quit) => self.running = false,
         }
     }
 
     pub fn tick(&mut self) {
         // Used whenever the tick is nessasary
-        
     }
 
+    /// Collects state transitions from the input channel and runs collect on them. It is intended to be run in the main loop
     pub async fn poll_and_run_action(&mut self){
-        // This function collects state transitions from the input channel and runs collect on them. It is intended to be run in the main loop
         let transition_maybe = self.rx.try_recv();
         match transition_maybe{
             Ok(transition) => self.collect(transition),
@@ -193,9 +203,6 @@ impl App {
 
 #[cfg(test)]
 mod test {
-    
-    
-
     // // Test that we're able to run the load fn correctly
     // #[tokio::test]
     // async fn test_load() {
