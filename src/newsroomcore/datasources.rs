@@ -1,22 +1,21 @@
 use tokio::sync::mpsc::Sender;
-
-
-
+use serde::{Deserialize, Serialize};
 use super::{newsfetchrss::get_channel, newsarticle::news_article};
 
 
-// This enum represents our data providers
-// Later on we can store data for each API
-// Inside the enum fields 
-#[derive(Debug, Clone)]
+// Represents our data providers
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DataSources {
     pub name: String,
     pub url: String,
 }
 
 impl DataSources {
+    /// Take in a channel and reformat into a vector of news articles, streaming them async over a channel
+    ///
+    /// Arguments
+    /// * tx - A channel which we can send fetched articles over
     pub(crate) async fn stream_articles(self, tx: Sender<news_article>) -> Result<(), ()>{
-        // Take in a channel and reformat into a vector of news articles
         if let Ok(channel) = get_channel(&self.url).await {
             let _articles: Vec<news_article> = Vec::new();
             for item in channel.items(){

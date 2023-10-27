@@ -1,15 +1,15 @@
 use super::{newsarticle::news_article, datasources::DataSources};
 
-// Enum to represent our own app state
+/// Enum to represent our own app state
 #[derive(Debug, Clone)]
 pub enum NewsroomState{
     homescreen,
     fetch_media(Vec<DataSources>),
     display_media(Vec<news_article>),
-    manage_settings,
+    manage_settings(Option<Vec<news_article>>),
 }
 
-// Enum to represent our own state transitions
+/// Enum to represent our own state transitions
 pub enum NewsroomTransitions{
     Loaded,
     ToSettings,

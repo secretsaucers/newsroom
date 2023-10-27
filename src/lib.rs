@@ -4,9 +4,6 @@ pub mod app;
 /// Terminal events handler.
 pub mod event;
 
-/// Widget renderer.
-// pub mod ui;
-
 /// Terminal user interface.
 pub mod tui;
 
@@ -21,3 +18,8 @@ pub mod root;
 
 /// Tabs
 pub mod tabs;
+
+/// Newsroomcore stores all our background app logic in a single module.
+/// It provides structures and services for defining news articles and news sources
+/// As well as fetching them from RSS channels.
+pub mod newsroomcore;

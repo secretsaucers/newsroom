@@ -1,6 +1,7 @@
 
 
-use crate::app::{App, AppResult, newsroomcore::newsroomstate::NewsroomTransitions};
+use crate::app::{App, AppResult};
+use crate::newsroomcore::newsroomstate::NewsroomTransitions;
 use crossterm::event::{KeyCode, KeyEvent};
 use log::info;
 
@@ -24,11 +25,14 @@ pub fn handle_key_events(key_event: KeyEvent, app: &App) -> AppResult<()> {
             let _ = app.tx.send(NewsroomTransitions::Up);
         }
         KeyCode::Char('l') => {
-            let _ = app.tx.send(NewsroomTransitions::FetchMedia([].to_vec()));
+            let _ = app.tx.send(NewsroomTransitions::FetchMedia(app.settings.sources.clone()));
         }
         KeyCode::Enter => {
             app.open_selected();
         },
+        KeyCode::Tab => {
+            app.change_tab();
+        }
         _ => {}
     }
     Ok(())

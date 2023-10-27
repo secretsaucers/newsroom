@@ -1,20 +1,113 @@
-use tui::style::{Style, Color, Modifier};
+use std::{fs, error::Error};
+use log::{warn, info};
 
+use tui::style::{Style, Color, Modifier};
+use toml;
+use serde::{Deserialize, Serialize};
+use crate::newsroomcore::datasources::DataSources;
+
+/// Struct to store primary settings used for the app
+/// Contains both news sources and theme info
 #[derive(Debug, Clone)]
 pub struct Settings {
-    pub config_file: String,
     pub theme: Theme,
+    pub sources: Vec<DataSources>,
+}
+
+/// Struct to store configuration we get from config file
+#[derive(Debug, Deserialize, Serialize)]
+struct Config {
+    theme: String,
+    sources: Vec<DataSources>,
+}
+
+impl Default for Config {
+    /// Creates a default config as a starting point
+    /// Use default theme and some standard sources
+    fn default() -> Self {
+        // Default sources
+        let cbc = DataSources {
+            name: "cbc".to_string(),
+            url: "https://www.cbc.ca/cmlink/rss-topstories".to_string(),
+        };
+        let cnn = DataSources {
+            name: "cnn".to_string(),
+            url: "http://rss.cnn.com/rss/cnn_topstories.rss".to_string(),
+        };
+        let globe: DataSources = DataSources {
+            name: "globe and mail".to_string(),
+            url: "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/"
+                .to_string(),
+        };
+        let sources = vec![cbc, cnn, globe];
+
+        // Default theme
+        let theme = "default".to_string();
+        
+        Self { theme, sources }
+    }
+}
+
+impl Config {
+    /// Writes the settings to a file
+    fn write_config_to_file(&self, file: &String){
+        let res = fs::write(file, toml::to_string(self).unwrap());
+        match res {
+            Ok(_) => info!("File write successful"),
+            Err(e) => warn!("Config write failed \n {}", e),
+        };
+    }
+
+    /// Loads the config file to a string
+    /// 
+    /// Arguments
+    /// * file - A string representing the config file location with respect to the file root
+    fn config_to_toml(file: &String) -> Result<Config, Box<dyn Error>>{
+        // Try to load file into a TOML table
+        Ok(toml::from_str(&fs::read_to_string(file)?)?)
+    }
+
+    /// Returns a string representing the path to the .newsroom.toml file for the particular system
+    /// On linux this leads to ~/.newsroom.toml
+    /// On Windows this leads to ~/.newstoom.toml
+    /// On MacOS this leads to ~/.newstoom.toml
+    fn config_path() -> String {
+        r"C:\Users\space\.newsroom.toml".to_string()
+    }
 }
 
 impl Settings{
-    pub fn new() -> Settings{
+    /// Creates a new instance of settings
+    /// First checks the system for a .newsroom.toml file 
+    /// If a .newsroom.toml file is found, we read the file and copy the settings into it
+    /// If a .newsroom.toml file is NOT found, we create the file with defaults
+    pub fn new() -> Settings {
+        info!("Creating settings");
+        let config_path = Config::config_path();
+
+        let config = match Config::config_to_toml(&config_path) {
+            Ok(loaded_config) => {
+                // We've successfully loaded the config file
+                info!("Loaded the following config {:#?}", loaded_config);
+                loaded_config
+            },
+            Err(e) => {
+                warn!("Couldn't load config file, error follows \n {}", e);
+                // Create a default config and save it to the file
+                let default_config = Config::default();
+                default_config.write_config_to_file(&config_path);
+                default_config
+            },
+        };
+
         let theme = Theme::new();
-        Settings { config_file: "~/.newsroom".to_string(), theme }
+        Settings { theme, sources: config.sources }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Theme {
+    pub name: String,
     pub root: Style,
     pub content: Style,
     pub app_title: Style,
@@ -29,6 +122,7 @@ pub struct Theme {
 impl Theme {
     pub fn new() -> Theme{
         Theme{
+            name: "Default".to_string(),
             root: Style::new().bg(DARK_BLUE),
             content: Style::new().bg(DARK_BLUE).fg(LIGHT_GRAY),
             app_title: Style::new()
