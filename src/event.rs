@@ -1,6 +1,6 @@
 use crate::app::AppResult;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent, KeyEventKind};
-use tokio::{sync::{mpsc::{self, UnboundedSender, UnboundedReceiver}}};
+use tokio::sync::mpsc::{self, UnboundedSender, UnboundedReceiver};
 use std::time::{Duration, Instant};
 
 /// Terminal events.
@@ -48,12 +48,12 @@ impl EventHandler {
                         match event::read().expect("unable to read event") {
                             CrosstermEvent::Key(key) => {
                                 if key.kind == KeyEventKind::Press {
-                                  sender.send(Event::Key(key));
+                                  let _ = sender.send(Event::Key(key));
                                 };
                             },
-                            CrosstermEvent::Mouse(e) => {sender.send(Event::Mouse(e));},
-                            CrosstermEvent::Resize(w, h) => {sender.send(Event::Resize(w, h));},
-                            _ => unimplemented!(),
+                            CrosstermEvent::Mouse(e) => {let _ = sender.send(Event::Mouse(e));},
+                            CrosstermEvent::Resize(w, h) => {let _ = sender.send(Event::Resize(w, h));},
+                            _ => {},
                         }
                         // .expect("failed to send terminal event")
                     }

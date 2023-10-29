@@ -1,7 +1,7 @@
 use crate::{newsroomcore::newsroomstate::NewsroomState, settings::Theme};
 use tui::{
     prelude::*,
-    widgets::{calendar::CalendarEventStore, *},
+    widgets::*,
 };
 
 pub struct NewsTab<'a>{
@@ -14,14 +14,14 @@ impl NewsTab <'_>{
     pub fn new(nrs: &NewsroomState, theme: Theme, index: Option<usize>) -> NewsTab {
         let mut list_state = ListState::default();
         list_state.select(index);
-        NewsTab { nrs, list_state: list_state, theme}
+        NewsTab { nrs, list_state, theme}
     }
 }
 
 impl Widget for NewsTab <'_>{
     fn render(mut self, area: Rect, buf: &mut Buffer) {
         match self.nrs {
-            NewsroomState::display_media(articles) => {
+            NewsroomState::DisplayMedia(articles) => {
                 let items: Vec<ListItem> = articles
                 .iter()
                 .map(|x| ListItem::new(format!("{}: {}", x.source.name,x.title)))
@@ -32,8 +32,8 @@ impl Widget for NewsTab <'_>{
 
                 tui::widgets::StatefulWidget::render(list_widget, area, buf, &mut self.list_state); // Render widget
             },
-            NewsroomState::fetch_media(_) => Paragraph::new("Loading news . . .").style(self.theme.description).alignment(Alignment::Center).render(area, buf),
-            NewsroomState::homescreen => Paragraph::new("Press 'l' to load news articles").alignment(Alignment::Center).render(area, buf),
+            NewsroomState::FetchMedia(_) => Paragraph::new("Loading news . . .").style(self.theme.description).alignment(Alignment::Center).render(area, buf),
+            NewsroomState::Homescreen => Paragraph::new("Press 'l' to load news articles").alignment(Alignment::Center).render(area, buf),
             _ => {},
         }
     }

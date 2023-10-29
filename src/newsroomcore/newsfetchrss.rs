@@ -1,10 +1,8 @@
 // Code section to fetch RSS data in a way we can understand
 use rss::Channel;
 use tokio::sync::mpsc::{Sender, Receiver, self};
-use std::error::Error;
 
-
-use super::{newsarticle::news_article, datasources::DataSources};
+use super::{newsarticle::NewsArticle, datasources::DataSources};
 
 /// Collects data from the channel URL
 pub(crate) async fn get_channel(url : &str) -> Result<Channel, ()> {
@@ -25,20 +23,20 @@ pub(crate) async fn get_channel(url : &str) -> Result<Channel, ()> {
 }
 
 /// Fetches articles from a series of sources, returns a list of articles. Articles are fetched async
-pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<news_article>{
-    let mut rx: Receiver<news_article>;
+pub(crate) async fn fetch_articles(sources: Vec<DataSources>) -> Vec<NewsArticle>{
+    let mut rx: Receiver<NewsArticle>;
 
     // Asynchronously fetches news articles from the rss feeds
     // Define a local scope so that we can drop TX, meaning the channel will close when all threads resolve
     {
-        let (tx, rx_local): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
+        let (tx, rx_local): (Sender<NewsArticle>, Receiver<NewsArticle>) = mpsc::channel(100);
         rx = rx_local;
         for source in sources{
             tokio::spawn(source.stream_articles(tx.clone()));
         }
     }
 
-    let mut fetched_articles: Vec<news_article> = vec![];
+    let mut fetched_articles: Vec<NewsArticle> = vec![];
 
     loop {
         match rx.recv().await {
