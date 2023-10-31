@@ -31,15 +31,17 @@ async fn main() -> AppResult<()> {
     while app.running {
         tui.draw(&app)?;
 
-        // Handle events.
-        match tui.events.next()? {
+        // Handle events
+        // TODO: The match below is blocking, so it should be corrected in the future
+        // but it will block for at most a tick so it should be imperceptible. 
+        // Tokio requires us not to block the main thread so that it can still poll on futures.
+        match tui.events.next().await? {
             Event::Tick => {
                 app.tick();
             },
             Event::Key(key_event) => handle_key_events(key_event, &app)?,
             Event::Mouse(_) => {},
             Event::Resize(_, _) => {},
-            Event::Nothing => {},
         }
 
         app.poll_and_run_action().await;
