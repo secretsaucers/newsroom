@@ -2,7 +2,6 @@ use tokio::sync::mpsc::Sender;
 use serde::{Deserialize, Serialize};
 use super::{newsfetchrss::get_channel, newsarticle::NewsArticle};
 
-
 // Represents our data providers
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DataSources {

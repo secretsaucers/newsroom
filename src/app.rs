@@ -50,7 +50,6 @@ impl App {
         // Send fetch media update over the channel
         let _ = tx.send(NewsroomTransitions::FetchMedia(sources.clone()));
 
-
         // Fetch articles and add them to the app
         let num_sources = sources.len();
         let mut fetched_articles = fetch_articles(sources.to_vec()).await;
@@ -62,7 +61,6 @@ impl App {
         let mut rng = thread_rng();
         fetched_articles.shuffle(&mut rng);
         let _ = tx.send(NewsroomTransitions::ReturnMedia(fetched_articles));
-
     }
 
     /// Advance the current widget (only used now to highlight the next article)

@@ -1,7 +1,6 @@
 // Code section to fetch RSS data in a way we can understand
 use rss::Channel;
 use tokio::sync::mpsc::{Sender, Receiver, self};
-
 use super::{newsarticle::NewsArticle, datasources::DataSources};
 
 /// Collects data from the channel URL
