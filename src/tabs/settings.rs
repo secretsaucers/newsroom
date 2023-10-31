@@ -1,6 +1,6 @@
 use tui::{
     prelude::*,
-    widgets::{calendar::CalendarEventStore, *},
+    widgets::{*},
 };
 
 use crate::settings::Settings;
@@ -18,7 +18,7 @@ impl SettingsTab{
     fn render_sources (&self, area: Rect, buf: &mut Buffer) {
         let items: Vec<ListItem> = self.settings.sources
         .iter()
-        .map(|x| ListItem::new(format!("{}", x.name)))
+        .map(|x| ListItem::new(x.name.to_string()))
         .collect();
         let list_widget = List::new(items)
         .style(self.settings.theme.content).block(Block::new().borders(Borders::ALL).border_type(BorderType::Rounded).title("Sources"));

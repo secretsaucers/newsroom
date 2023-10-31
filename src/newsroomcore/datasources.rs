@@ -1,7 +1,6 @@
 use tokio::sync::mpsc::Sender;
 use serde::{Deserialize, Serialize};
-use super::{newsfetchrss::get_channel, newsarticle::news_article};
-
+use super::{newsfetchrss::get_channel, newsarticle::NewsArticle};
 
 // Represents our data providers
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -15,9 +14,9 @@ impl DataSources {
     ///
     /// Arguments
     /// * tx - A channel which we can send fetched articles over
-    pub(crate) async fn stream_articles(self, tx: Sender<news_article>) -> Result<(), ()>{
+    pub(crate) async fn stream_articles(self, tx: Sender<NewsArticle>) -> Result<(), ()>{
         if let Ok(channel) = get_channel(&self.url).await {
-            let _articles: Vec<news_article> = Vec::new();
+            let _articles: Vec<NewsArticle> = Vec::new();
             for item in channel.items(){
                 match item.description(){
                     Some(description) => {
@@ -44,8 +43,8 @@ impl DataSources {
                             None => "".to_string(),
                         };
         
-                        let article_to_push: news_article = news_article{ authors: author, title, summary, link, source: self.clone() };
-                        tx.send(article_to_push).await;
+                        let article_to_push: NewsArticle = NewsArticle{ authors: author, title, summary, link, source: self.clone() };
+                        let _ = tx.send(article_to_push).await;
                     },
                     None => {},
                 }
@@ -66,7 +65,7 @@ mod test {
     #[tokio::test]
     async fn streaming_test(){
         let cbc = DataSources{name: "cbc".to_string(), url: "https://www.cbc.ca/cmlink/rss-topstories".to_string()};
-        let (tx, mut rx): (Sender<news_article>, Receiver<news_article>) = mpsc::channel(100);
+        let (tx, mut rx): (Sender<NewsArticle>, Receiver<NewsArticle>) = mpsc::channel(100);
 
         tokio::spawn(cbc.stream_articles(tx));
         let article = rx.recv().await;
