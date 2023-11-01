@@ -24,7 +24,7 @@ async fn main() -> AppResult<()> {
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(250);
+    let events = EventHandler::new(250); // Tick event every 250ms, this is the minimum update loop speed
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
     // Start the main loop.
