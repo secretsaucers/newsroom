@@ -24,22 +24,24 @@ async fn main() -> AppResult<()> {
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(250);
+    let events = EventHandler::new(250); // Tick event every 250ms, this is the minimum update loop speed
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
     // Start the main loop.
     while app.running {
         tui.draw(&app)?;
 
-        // Handle events.
-        match tui.events.next()? {
+        // Handle events
+        // TODO: The match below is blocking, so it should be corrected in the future
+        // but it will block for at most a tick so it should be imperceptible. 
+        // Tokio requires us not to block the main thread so that it can still poll on futures.
+        match tui.events.next().await? {
             Event::Tick => {
                 app.tick();
             },
             Event::Key(key_event) => handle_key_events(key_event, &app)?,
             Event::Mouse(_) => {},
             Event::Resize(_, _) => {},
-            Event::Nothing => {},
         }
 
         app.poll_and_run_action().await;

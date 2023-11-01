@@ -14,8 +14,6 @@ pub enum Event {
     Mouse(MouseEvent),
     /// Terminal resize.
     Resize(u16, u16),
-    /// Nothing, dont do anything
-    Nothing,
 }
 
 /// Terminal event handler.
@@ -76,11 +74,10 @@ impl EventHandler {
     ///
     /// This function will always block the current thread if
     /// there is no data available and it's possible for more data to be sent.
-    pub fn next(&mut self) -> AppResult<Event> {
-        match self.receiver.try_recv() {
-            Ok(app_result) => AppResult::Ok(app_result),
-            Err(tokio::sync::mpsc::error::TryRecvError::Empty) => AppResult::Ok(Event::Nothing),
-            Err(_) => AppResult::Err("".into()),
+    pub async fn next(&mut self) -> AppResult<Event> {
+        match self.receiver.recv().await {
+            Some(app_result) => AppResult::Ok(app_result),
+            None => AppResult::Err("".into()),
         }
     }
 }
