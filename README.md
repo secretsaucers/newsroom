@@ -3,6 +3,8 @@
 
 The goal: Instantly get a personalized summary of headline articles from your favourite RSS sources
 
+![Demo of Newsroom](resources/demo.gif)
+
 ## Layout
 
 Newsroom uses Crossterm and Ratatui to render the application.

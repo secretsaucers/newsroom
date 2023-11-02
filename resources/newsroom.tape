@@ -1,26 +1,28 @@
 # Where should we write the GIF?
 Output demo.gif
 
-# Set up a 1200x600 terminal with 46px font.
-Set FontSize 46
-Set Width 1200
-Set Height 600
+# Set up a terminal
+Set FontSize 24
+Set Width 1920
+Set Height 1080
 
 Type "cargo run"
+Enter
+Sleep 3s
 
 # Scroll a bit
 Down
-Sleep 2500ms
+Sleep 5s
 Down
-Sleep 250ms
+Sleep 750ms
 Down
-Sleep 250ms
+Sleep 750ms
 Up
-Sleep 250ms
+Sleep 750ms
 
 # Checkout settings
 Tab
-Sleep 1s
+Sleep 2s
 Tab
 
 # Admire the output for a bit.
