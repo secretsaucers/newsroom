@@ -5,6 +5,7 @@ use tui::style::{Style, Color, Modifier};
 use toml;
 use serde::{Deserialize, Serialize};
 use crate::newsroomcore::datasources::DataSources;
+use std::env;
 
 /// Struct to store primary settings used for the app
 /// Contains both news sources and theme info
@@ -50,12 +51,12 @@ impl Default for Config {
 
 impl Config {
     /// Writes the settings to a file
-    fn write_config_to_file(&self, file: &String){
-        let res = fs::write(file, toml::to_string(self).unwrap());
-        match res {
-            Ok(_) => info!("File write successful"),
-            Err(e) => warn!("Config write failed \n {}", e),
-        };
+    fn write_config_to_file(&self) -> Result<(), Box<dyn Error>> {
+        let file = Config::config_path()?;
+        let a = file.clone();
+        let parent = a.strip_suffix("newsroom.toml").unwrap();
+        fs::create_dir_all(parent)?;
+        Ok(fs::write(file, toml::to_string(self).unwrap())?)
     }
 
     /// Loads the config file to a string
@@ -71,8 +72,38 @@ impl Config {
     /// On linux this leads to ~/.newsroom.toml
     /// On Windows this leads to ~/.newstoom.toml
     /// On MacOS this leads to ~/.newstoom.toml
-    fn config_path() -> String {
-        r"C:\Users\space\.newsroom.toml".to_string()
+    fn config_path() -> Result<String, Box<dyn Error>> {
+        match env::consts::OS{
+            "linux" => {
+                // Get user home directory
+                let userdir = env::var("HOME")?;
+                // Merge home and target
+                let complete_path: String = userdir + r"\.Newsroom\newsroom.toml";
+                Ok(complete_path)
+            },
+            "macos" => {
+                // Get user home directory
+                let userdir = env::var("HOME")?;
+                // Merge home and target
+                let complete_path: String = userdir + r"\.Newsroom\newsroom.toml";
+                Ok(complete_path)
+            },
+            "windows" => {
+                info!("Running in Windows env");
+                // Get user home directory
+                let userdir = env::var("USERPROFILE")?;
+                // Merge home and target
+                let complete_path: String = userdir + r"\.Newsroom\config\newsroom.toml";
+                info!("Using config path: {}", complete_path);
+                Ok(complete_path)
+            },
+            _ => Err("Unimplemented OS".into())
+
+        }
+    }
+
+    fn load_config() -> Result<Config, Box<dyn Error>> {
+        Config::config_to_toml(&Config::config_path()?)
     }
 }
 
@@ -83,9 +114,8 @@ impl Settings{
     /// If a .newsroom.toml file is NOT found, we create the file with defaults
     pub fn new() -> Settings {
         info!("Creating settings");
-        let config_path = Config::config_path();
 
-        let config = match Config::config_to_toml(&config_path) {
+        let config = match Config::load_config() {
             Ok(loaded_config) => {
                 // We've successfully loaded the config file
                 info!("Loaded the following config {:#?}", loaded_config);
@@ -95,7 +125,11 @@ impl Settings{
                 warn!("Couldn't load config file, error follows \n {}", e);
                 // Create a default config and save it to the file
                 let default_config = Config::default();
-                default_config.write_config_to_file(&config_path);
+                let res = default_config.write_config_to_file();
+                match res {
+                    Ok(_) => info!("File write successful"),
+                    Err(e) => warn!("Config write failed \n {}", e),
+                };
                 default_config
             },
         };
